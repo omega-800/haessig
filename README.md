@@ -1,13 +1,17 @@
 # HÄSSIG
 
-A swiss german (Zurich dialect) language. Acronym stands for:
-
-Hässig,
-Ändlich
-Schwiizerdütschi
-Software
-In
-Gebruuch
+A swiss german (Zurich dialect) programming language. Acronym stands for:
+     
+Hässig,     
+Ändlich     
+Schwiizerdütschi     
+Software     
+In     
+Gebruuch     
+     
+> [!CAUTION]
+> Still in early stages of active development
+> Even though this is a very serious project, compatibility with future versions is not guaranteed
 
 ## Grammar
 
