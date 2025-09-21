@@ -2,12 +2,12 @@
 
 A swiss german (Zurich dialect) programming language. Acronym stands for:
      
-Hässig,     
-Ändlich     
-Schwiizerdütschi     
-Software     
-In     
-Gebruuch     
+H Hässig, Rekursivi 
+Ä Äkronym
+S Sind
+S Schwierig
+I Also
+G Lahn ich's
      
 > [!CAUTION]
 > Still in early stages of active development
