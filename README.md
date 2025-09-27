@@ -1,17 +1,17 @@
 # HÄSSIG
 
-A swiss german (Zurich dialect) programming language. Acronym stands for:
-     
-H Hässig, Rekursivi 
-Ä Äkronym
-S Sind
-S Schwierig
-I Also
-G Lahn ich's
-     
-> [!CAUTION]
-> Still in early stages of active development
-> Even though this is a very serious project, compatibility with future versions is not guaranteed
+A swiss german (Zurich dialect) programming language. Acronym stands for:    
+         
+H Hässig, Rekursivi     
+Ä Äkronym    
+S Sind    
+S Schwierig    
+I Also    
+G Lahn ich's    
+         
+> [!CAUTION]    
+> Still in early stages of active development    
+> Even though this is a very serious project, compatibility with future versions is not guaranteed    
 
 ## Grammar
 
