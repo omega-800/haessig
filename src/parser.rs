@@ -5,7 +5,7 @@ use crate::lexer::{Token, Tokens, TT};
 // FIXME: fix the wonky *pos+=1 and better schwiizerdütschi errors
 
 #[derive(Debug, Clone)]
-pub struct Program<'a>(Vec<AST<'a>>);
+pub struct Program<'a>(pub Vec<AST<'a>>);
 
 impl<'a> TryFrom<&'a Tokens> for Program<'a> {
     type Error = ParseError;

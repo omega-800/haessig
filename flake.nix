@@ -56,6 +56,7 @@
               cargo-edit
               cargo-watch
               rust-analyzer
+              fasm
             ];
 
             env = {
