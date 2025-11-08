@@ -33,13 +33,13 @@ impl Display for SemAnError {
 }
 
 pub struct SemanticAnalyzer<'a> {
-    ast: &'a Vec<AST<'a>>,
+    ast: &'a Program<'a>,
     scope_stack: Vec<Scope<'a>>,
 }
 
 // TODO: annotate AST
 impl<'a> SemanticAnalyzer<'a> {
-    pub fn new(Program(ast): &'a Program<'a>) -> Self {
+    pub fn new(ast: &'a Program<'a>) -> Self {
         Self {
             ast,
             scope_stack: vec![HashMap::new()],
@@ -49,7 +49,8 @@ impl<'a> SemanticAnalyzer<'a> {
     pub fn analyze(&'a mut self) -> Result<(), SemAnError> {
         // TODO: hoisting
         // TODO: type checking
-        for item in self.ast.iter() {
+        let Program(ast) = self.ast;
+        for item in ast.iter() {
             match item {
                 AST::Stmt(stmt) => self.analyze_stmt(stmt)?,
                 AST::Expr(expr) => self.analyze_expr(expr)?,

@@ -16,7 +16,7 @@ use lexer::Tokens;
 use parser::Program;
 use seman::SemanticAnalyzer;
 
-use crate::compiler::Compiler;
+use crate::{compiler::Compiler, interm::IRGen};
 
 fn main() {
     // TODO: remove or implement
@@ -117,6 +117,7 @@ funktion chuchichäschtli {
         Ok(ast) => {
             match SemanticAnalyzer::new(&ast).analyze() {
                 Ok(_) => {
+                    let ir = IRGen::new(&ast).generate();
                     let fasm = Compiler::new(ast).compile();
                     //println!("FASM:\n{fasm}");
                     write("fasm.asm", &fasm);

@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use crate::parser::{Program, AST};
+
 
 enum Op {
     Add, 
@@ -9,21 +13,21 @@ enum Op {
 
 type Instructions = Vec<(Op, u8, u8, u8)>;
 
-struct IntermRepr {
+pub struct IntermRepr {
     main: Instructions,
     labels: HashMap<String, Instructions>
 }
 
-struct IRGen {
+pub struct IRGen<'a> {
     ir: IntermRepr,
-    ast: AST
+    ast: &'a Program<'a>
 }
 
-impl IRGen {
-    fn new(ast: AST) -> Self {
+impl<'a> IRGen<'a> {
+    pub fn new(ast: &'a Program<'a>) -> Self {
         Self {ir: IntermRepr {main: Vec::new(), labels: HashMap::new()}, ast}
     }
-    fn generate(&self) -> IntermRepr {
+    pub fn generate(&self) -> IntermRepr {
         todo!()
     }
 }
