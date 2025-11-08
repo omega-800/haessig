@@ -37,6 +37,7 @@ pub struct SemanticAnalyzer<'a> {
     scope_stack: Vec<Scope<'a>>,
 }
 
+// TODO: annotate AST
 impl<'a> SemanticAnalyzer<'a> {
     pub fn new(Program(ast): &'a Program<'a>) -> Self {
         Self {
@@ -145,7 +146,7 @@ impl<'a> SemanticAnalyzer<'a> {
     pub fn add_symbol(&mut self, symbol: String, value: &'a Option<PrimType>) {
         if let Some(s) = self.get_symbol(&symbol) {
             eprintln!(
-                "WARNING: Shadowing previously defined token `{}` ({:?}) with new {}",
+                "WARNING: Shadowing previously defined variable `{}` ({:?}) with new {}",
                 symbol,
                 s,
                 value.map_or("Unknown".to_string(), |v| v.to_string())

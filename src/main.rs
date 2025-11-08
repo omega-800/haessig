@@ -11,6 +11,7 @@ mod compiler;
 mod lexer;
 mod parser;
 mod seman;
+mod interm;
 use lexer::Tokens;
 use parser::Program;
 use seman::SemanticAnalyzer;
