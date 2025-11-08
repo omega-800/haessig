@@ -7,6 +7,32 @@ use crate::lexer::{Token, Tokens, TT};
 #[derive(Debug, Clone)]
 pub struct Program<'a>(pub Vec<AST<'a>>);
 
+#[derive(Debug, Clone, Copy)]
+pub enum PrimType {
+    String,
+    U8,
+    I8,
+    F8,
+    Boolean,
+}
+
+impl Display for PrimType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl PrimType {
+    fn from_tt(value: TT) -> Option<Self> {
+        match value {
+            TT::TypZeiche => Some(PrimType::String),
+            TT::TypZahl => Some(PrimType::U8),
+            TT::TypWahrheit => Some(PrimType::Boolean),
+            _ => None,
+        }
+    }
+}
+
 impl<'a> TryFrom<&'a Tokens> for Program<'a> {
     type Error = ParseError;
     fn try_from(value: &'a Tokens) -> Result<Self, Self::Error> {
@@ -53,14 +79,27 @@ impl<'a> Parseable<'a> for Stmt<'a> {
     fn parse(tokens: &'a [Token], pos: &mut usize) -> Result<Self, ParseError> {
         // TODO: stop being shit at coding and dry
         let mut ret = None;
-        if let Ok(s) = FunAss::parse(tokens, pos) {
-            ret = Some(Stmt::FunAss(s));
+        let mut err_msg = String::new();
+        match FunAss::parse(tokens, pos) {
+            Ok(r) => ret = Some(Stmt::FunAss(r)),
+            Err(e) => {
+                err_msg += "\n`FunAss` ";
+                err_msg += &e.message;
+            }
         }
-        if let Ok(s) = VarAss::parse(tokens, pos) {
-            ret = Some(Stmt::VarAss(s));
+        match VarAss::parse(tokens, pos) {
+            Ok(r) => ret = Some(Stmt::VarAss(r)),
+            Err(e) => {
+                err_msg += "\n`VarAss` ";
+                err_msg += &e.message;
+            }
         }
-        if let Ok(s) = StEx::parse(tokens, pos) {
-            ret = Some(Stmt::StEx(s));
+        match StEx::parse(tokens, pos) {
+            Ok(r) => ret = Some(Stmt::StEx(r)),
+            Err(e) => {
+                err_msg += "\n`StEx` ";
+                err_msg += &e.message;
+            }
         }
         if let Some(ret) = ret {
             if tokens
@@ -80,7 +119,7 @@ impl<'a> Parseable<'a> for Stmt<'a> {
         Err(ParseError::new(
             tokens,
             pos,
-            "Couldn't parse `Stmt`".to_string(),
+            format!("Couldn't parse `Stmt`. Tried: {}", err_msg,),
         ))
     }
 }
@@ -116,6 +155,7 @@ pub enum AST<'a> {
 #[derive(Debug, Clone)]
 pub enum Prim<'a> {
     Str(&'a str),
+    U8(u8),
     Id(&'a str),
 }
 
@@ -131,6 +171,10 @@ impl<'a> Parseable<'a> for Prim<'a> {
         };
         *pos += 1;
         match t.token_type {
+            TT::Num => Ok(Prim::U8(
+                // TODO: error handling
+                t.value.as_ref().map_or(0, |v| v.parse().unwrap_or(0)),
+            )),
             TT::Str => Ok(Prim::Str(t.value.as_ref().map_or("", |v| v))),
             TT::Id => Ok(Prim::Id(t.value.as_ref().map_or("", |v| v))),
             _ => {
@@ -147,7 +191,7 @@ impl<'a> Parseable<'a> for Prim<'a> {
 
 #[derive(Debug, Clone)]
 pub struct Block<'a> {
-    stmts: Vec<Stmt<'a>>,
+    pub stmts: Vec<Stmt<'a>>,
 }
 impl<'a> Parseable<'a> for Block<'a> {
     fn parse(tokens: &'a [Token], pos: &mut usize) -> Result<Self, ParseError> {
@@ -193,8 +237,8 @@ impl<'a> Parseable<'a> for Block<'a> {
 
 #[derive(Debug, Clone)]
 pub struct VarAss<'a> {
-    id: &'a str,
-    value: Expr<'a>,
+    pub id: &'a str,
+    pub value: Expr<'a>,
 }
 
 impl<'a> Parseable<'a> for VarAss<'a> {
@@ -239,8 +283,9 @@ impl<'a> Parseable<'a> for VarAss<'a> {
 
 #[derive(Debug, Clone)]
 pub struct FunAss<'a> {
-    id: &'a str,
-    body: Block<'a>,
+    pub id: &'a str,
+    pub body: Block<'a>,
+    pub ret: Option<PrimType>,
 }
 
 impl<'a> Parseable<'a> for FunAss<'a> {
@@ -267,22 +312,42 @@ impl<'a> Parseable<'a> for FunAss<'a> {
             ));
         };
         *pos += 2;
+        //TODO: args
+        //TODO: return type
+        let mut ret = None;
+        if let Some((rettoks, _rest)) = tokens[*pos..].split_at_checked(2) {
+            if rettoks[0].token_type == TT::Git {
+                if let Some(prim_type) = PrimType::from_tt(rettoks[1].token_type) {
+                    ret = Some(prim_type);
+                    *pos += 2;
+                } else {
+                    return Err(ParseError::new(
+                        tokens,
+                        pos,
+                        format!("Couldn't parse return type `{:?}`", rettoks[1].token_type),
+                    ));
+                }
+            }
+        }
         let Ok(body) = Block::parse(tokens, pos) else {
             *pos -= 2;
+            if ret.is_some() {
+                *pos -= 2;
+            }
             return Err(ParseError::new(
                 tokens,
                 pos,
                 "Couldn't parse body".to_string(),
             ));
         };
-        Ok(FunAss { id, body })
+        Ok(FunAss { id, body, ret })
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Call<'a> {
-    id: &'a str,
-    args: Vec<Expr<'a>>,
+    pub id: &'a str,
+    pub args: Vec<Expr<'a>>,
 }
 
 impl<'a> Parseable<'a> for Call<'a> {
@@ -350,10 +415,15 @@ impl ParseError {
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Your code is shit :)")
+        write!(
+            f,
+            "Your code is bonkers just after token {} (row {}, col {}) :)\nHere's a tip: {}",
+            self.pos, self.row, self.col, self.message
+        )
     }
 }
 
+// TODO: move parsing methods to Parser impl
 impl<'a> Parser<'a> {
     /*
     pub fn new(input: &'a Tokens) -> Self {

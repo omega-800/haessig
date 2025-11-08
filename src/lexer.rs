@@ -2,15 +2,20 @@ use std::fmt::Display;
 
 use regex::Regex;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TT {
     Funktion,
     Tuen,
     Mit,
     Dä,
     Isch,
+    Git,
+    TypZeiche,
+    TypZahl,
+    TypWahrheit,
     Str,       // ".*"
     Id,        //
+    Num,       //
     LBrace,    // {
     RBrace,    // }
     Semicolon, // ;
@@ -25,7 +30,17 @@ pub struct Token {
     pub col: usize,
 }
 
-const TOKSTR: [&str; 5] = ["funktion ", "tuen ", "mit ", "dä ", "isch "];
+const TOKSTR: [&str; 9] = [
+    "funktion ",
+    "tuen ",
+    "mit ",
+    "dä ",
+    "isch ",
+    "git ",
+    "Zeiche ",
+    "Zahl ",
+    "Wahrheit ",
+];
 
 impl Token {
     pub fn from_char(ch: char, row: usize, col: &mut usize) -> Self {
@@ -67,16 +82,24 @@ impl Token {
                 return tok;
             }
         }
-        let re_str = Regex::new(r#"^"([^"]|\\")*""#).unwrap();
-        if let Some(m) = re_str.find(input) {
-            let tok = Token::new(TT::Str, Some(m.as_str().to_owned()), row, *col);
-            *col += m.as_str().chars().count();
+
+        let mut try_find = |re: &str, ttype: TT| -> Option<Token> {
+            let re_str = Regex::new(re).unwrap();
+            if let Some(m) = re_str.find(input) {
+                let tok = Token::new(ttype, Some(m.as_str().to_owned()), row, *col);
+                *col += m.as_str().chars().count();
+                return Some(tok);
+            }
+            None
+        };
+
+        if let Some(tok) = try_find(r#"^"([^"]|\\")*""#, TT::Str) {
             return tok;
         }
-        let re_id = Regex::new(r#"^[\p{alpha}_][\p{alpha}0-9_'-]*"#).unwrap();
-        if let Some(m) = re_id.find(input) {
-            let tok = Token::new(TT::Id, Some(m.as_str().to_owned()), row, *col);
-            *col += m.as_str().chars().count();
+        if let Some(tok) = try_find(r#"^-?[0-9]*([0-9]|([0-9].[0-9]))[0-9]*"#, TT::Num) {
+            return tok;
+        }
+        if let Some(tok) = try_find(r#"^[\p{alpha}_][\p{alpha}0-9_'-]*"#, TT::Id) {
             return tok;
         }
         *col += input.chars().take_while(|c| !c.is_whitespace()).count() + 1;
@@ -96,9 +119,10 @@ impl<'a> From<&'a str> for Tokens {
 impl Display for Tokens {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let Tokens(v) = self;
-        write!(f,
+        write!(
+            f,
             "[ {} ]",
-                v.iter()
+            v.iter()
                 .map(|t| {
                     format!(
                         "{:?}{}",

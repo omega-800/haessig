@@ -12,18 +12,14 @@ syscall                               ;; );
 
 fn generate_prim(prim: &Prim) -> String {
     match prim {
-        /*
-                Prim::Num(num) => format!("
-        mov rax, {}
-        ", num),
-                */
         Prim::Str(str) => format!(
-            "
+                "
 {}
 ",
-            str
-        ),
+                str
+            ),
         Prim::Id(id) => todo!(),
+        Prim::U8(_) => todo!(),
     }
 }
 
@@ -35,25 +31,41 @@ fn generate_stmt(stmt: &Stmt) -> String {
     }
 }
 
-pub fn generate_fasm(Program(p): &Program) -> String {
-    let mut asm = "
+pub struct Compiler<'a> {
+    input: Program<'a>,
+    stack_size: u64,
+    output: String,
+}
+
+impl<'a> Compiler<'a> {
+    pub fn new(input: Program<'a>) -> Self {
+        Self {
+            input,
+            stack_size: 0,
+            output: "
 format ELF64 executable 3                 ;; ELF64 Format for GNU+Linux
 segment readable executable               ;; Executable code section
 
 _start:                                   
 "
-    .to_string();
-
-    for s in p {
-        if let AST::Stmt(stmt) = s {
-            asm += &generate_stmt(stmt);
+            .to_string(),
         }
     }
 
-    asm += "
+    pub fn compile(&mut self) -> String {
+        let Program(p) = &self.input;
+        for s in p {
+            match s {
+                AST::Stmt(stmt) => self.output += &generate_stmt(stmt),
+                AST::Expr(expr) => todo!(),
+            }
+        }
+
+        self.output += "
     mov eax, 60                           ;; SYS_exit(                // Call the exit exit(2) syscall
     mov edi, 0                            ;;     EXIT_SUCCESS,        // Exit with success exit code, required if we don't want a segfault
     syscall                               ;; );
 ";
-    asm
+        self.output.clone()
+    }
 }

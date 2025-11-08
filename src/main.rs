@@ -3,18 +3,19 @@
 #![deny(clippy::panic)]
 #![deny(unused_must_use)]
 
-use clap::{arg, command, value_parser, ArgAction, Command};
-use compiler::generate_fasm;
 use std::{
     fs::{create_dir, exists, File},
     io::{self, Write},
-    path::{Path, PathBuf},
 };
 mod compiler;
 mod lexer;
 mod parser;
+mod seman;
 use lexer::Tokens;
 use parser::Program;
+use seman::SemanticAnalyzer;
+
+use crate::compiler::Compiler;
 
 fn main() {
     // TODO: remove or implement
@@ -79,12 +80,24 @@ fn dothething() {
 funktion hallo_sege {
   tuen schreie mit \"Hallo welt\";
 };
+funktion chuchichäschtli {
+    dä x isch 2;
+    dä x isch 4;
+    tuen schreie mit \"Hallo welt\";
+    tuen schreie mit y;
+};
+dä y isch 7;
+"
+    /*"
+funktion hallo_sege {
+  tuen schreie mit \"Hallo welt\";
+};
 
 funktion chuchichäschtli {
   dä wert isch \"sowas\";
   tuen hallo_sege mit wert;
 };
-";
+"*/;
 
     if !exists("./.build").unwrap_or(false) {
         if let Err(err) = create_dir("./.build") {
@@ -101,20 +114,25 @@ funktion chuchichäschtli {
     write("ast.txt", &format!("{:#?}", ast));
     match ast {
         Ok(ast) => {
-            let fasm = generate_fasm(&ast);
-            //println!("FASM:\n{fasm}");
-            write("fasm.asm", &fasm);
-            match std::process::Command::new("fasm")
-                .arg("./.build/fasm.asm")
-                .arg("./.build/out")
-                .output()
-            {
-                Ok(out) => {
-                    println!("Linking status: {}", out.status);
-                    let _ = io::stdout().write_all(&out.stdout);
-                    let _ = io::stderr().write_all(&out.stderr);
+            match SemanticAnalyzer::new(&ast).analyze() {
+                Ok(_) => {
+                    let fasm = Compiler::new(ast).compile();
+                    //println!("FASM:\n{fasm}");
+                    write("fasm.asm", &fasm);
+                    match std::process::Command::new("fasm")
+                        .arg("./.build/fasm.asm")
+                        .arg("./.build/out")
+                        .output()
+                    {
+                        Ok(out) => {
+                            println!("Linking status: {}", out.status);
+                            let _ = io::stdout().write_all(&out.stdout);
+                            let _ = io::stderr().write_all(&out.stderr);
+                        }
+                        Err(err) => eprintln!("Failed to link executable: {}", err),
+                    }
                 }
-                Err(err) => eprintln!("Failed to link executable: {}", err),
+                Err(err) => eprintln!("Failed to analyze: {}", err),
             }
         }
         Err(err) => eprintln!("Failed to parse: {}", err),
