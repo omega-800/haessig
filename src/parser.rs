@@ -3,16 +3,17 @@ use std::fmt::Display;
 use crate::lexer::{Token, Tokens, TT};
 
 // FIXME: fix the wonky *pos+=1 and better schwiizerdütschi errors
+// TODO: add position info to AST nodes
 
 #[derive(Debug, Clone)]
-pub struct Program<'a>(pub Vec<AST<'a>>);
+pub struct Program<'a>(pub Vec<Stmt<'a>>);
 
 #[derive(Debug, Clone, Copy)]
 pub enum PrimType {
     String,
-    U8,
-    I8,
-    F8,
+    R8,
+    N8,
+    Z8,
     Boolean,
 }
 
@@ -26,7 +27,9 @@ impl PrimType {
     fn from_tt(value: TT) -> Option<Self> {
         match value {
             TT::TypZeiche => Some(PrimType::String),
-            TT::TypZahl => Some(PrimType::U8),
+            TT::TypR8 => Some(PrimType::R8),
+            TT::TypN8 => Some(PrimType::N8),
+            TT::TypZ8 => Some(PrimType::Z8),
             TT::TypWahrheit => Some(PrimType::Boolean),
             _ => None,
         }
@@ -36,7 +39,7 @@ impl PrimType {
 impl<'a> TryFrom<&'a Tokens> for Program<'a> {
     type Error = ParseError;
     fn try_from(value: &'a Tokens) -> Result<Self, Self::Error> {
-        Parser::parse(value)
+        Parser::new(value).parse()
     }
 }
 
@@ -69,10 +72,57 @@ impl<'a> Parseable<'a> for StEx<'a> {
 }
 
 #[derive(Debug, Clone)]
+pub struct Ret<'a> {
+    pub expr: Expr<'a>,
+}
+
+impl<'a> Parseable<'a> for Ret<'a> {
+    fn parse(tokens: &'a [Token], pos: &mut usize) -> Result<Self, ParseError> {
+        let Some(fst) = tokens.get(*pos) else {
+            return Err(ParseError::new(
+                tokens,
+                pos,
+                "Not enough tokens left".to_string(),
+            ));
+        };
+        if fst.token_type != TT::Gib {
+            return Err(ParseError::new(
+                tokens,
+                pos,
+                "First tok isn't `Gib`".to_string(),
+            ));
+        }
+        *pos += 1;
+        if let Ok(expr) = Expr::parse(tokens, pos) {
+            if tokens
+                .get(*pos)
+                .map_or(false, |t| t.token_type == TT::Semicolon)
+            {
+                *pos += 1;
+                return Ok(Ret { expr });
+            } else {
+                return Err(ParseError::new(
+                    tokens,
+                    pos,
+                    "Expected semicolon `;`".to_string(),
+                ));
+            }
+        }
+        *pos -= 1;
+        Err(ParseError::new(
+            tokens,
+            pos,
+            "Couldn't parse `Ret`".to_string(),
+        ))
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum Stmt<'a> {
     FunAss(FunAss<'a>),
     VarAss(VarAss<'a>),
     StEx(StEx<'a>),
+    Ret(Ret<'a>),
 }
 
 impl<'a> Parseable<'a> for Stmt<'a> {
@@ -98,6 +148,13 @@ impl<'a> Parseable<'a> for Stmt<'a> {
             Ok(r) => ret = Some(Stmt::StEx(r)),
             Err(e) => {
                 err_msg += "\n`StEx` ";
+                err_msg += &e.message;
+            }
+        }
+        match Ret::parse(tokens, pos) {
+            Ok(r) => ret = Some(Stmt::Ret(r)),
+            Err(e) => {
+                err_msg += "\n`Ret` ";
                 err_msg += &e.message;
             }
         }
@@ -147,15 +204,10 @@ impl<'a> Parseable<'a> for Expr<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub enum AST<'a> {
-    Stmt(Stmt<'a>),
-    Expr(Expr<'a>),
-}
-
-#[derive(Debug, Clone)]
 pub enum Prim<'a> {
+    Bool(bool),
     Str(&'a str),
-    U8(u8),
+    R8(u8),
     Id(&'a str),
 }
 
@@ -171,11 +223,13 @@ impl<'a> Parseable<'a> for Prim<'a> {
         };
         *pos += 1;
         match t.token_type {
-            TT::Num => Ok(Prim::U8(
+            TT::Num => Ok(Prim::R8(
                 // TODO: error handling
                 t.value.as_ref().map_or(0, |v| v.parse().unwrap_or(0)),
             )),
             TT::Str => Ok(Prim::Str(t.value.as_ref().map_or("", |v| v))),
+            TT::Wahr => Ok(Prim::Bool(true)),
+            TT::Falsch => Ok(Prim::Bool(false)),
             TT::Id => Ok(Prim::Id(t.value.as_ref().map_or("", |v| v))),
             _ => {
                 *pos -= 1;
@@ -239,6 +293,7 @@ impl<'a> Parseable<'a> for Block<'a> {
 pub struct VarAss<'a> {
     pub id: &'a str,
     pub value: Expr<'a>,
+    pub pt: Option<PrimType>,
 }
 
 impl<'a> Parseable<'a> for VarAss<'a> {
@@ -270,7 +325,23 @@ impl<'a> Parseable<'a> for VarAss<'a> {
         };
         *pos += 3;
         if let Ok(value) = Expr::parse(tokens, pos) {
-            return Ok(VarAss { id, value });
+            let mut pt = None;
+            if let Some((fsttwo, _rest)) = tokens[*pos..].split_at_checked(2) {
+                if fsttwo[0].token_type == TT::Als {
+                    if let Some(tt) = PrimType::from_tt(fsttwo[1].token_type) {
+                        *pos += 2;
+                        pt = Some(tt);
+                    } else {
+                        *pos -= 3;
+                        return Err(ParseError::new(
+                            tokens,
+                            pos,
+                            "Wrong `VarAss` type".to_string(),
+                        ));
+                    }
+                }
+            };
+            return Ok(VarAss { id, value, pt });
         }
         *pos -= 3;
         Err(ParseError::new(
@@ -379,6 +450,7 @@ impl<'a> Parseable<'a> for Call<'a> {
         if let Some(mit) = tokens.get(*pos) {
             if mit.token_type == TT::Mit {
                 *pos += 1;
+                // FIXME: commas
                 while let Ok(a) = Expr::parse(tokens, pos) {
                     args.push(a);
                 }
@@ -387,11 +459,6 @@ impl<'a> Parseable<'a> for Call<'a> {
 
         Ok(Call { id, args })
     }
-}
-
-pub struct Parser<'a> {
-    input: &'a Tokens,
-    pos: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -423,18 +490,22 @@ impl Display for ParseError {
     }
 }
 
+pub struct Parser<'a> {
+    input: &'a Tokens,
+    pos: usize,
+}
+
 // TODO: move parsing methods to Parser impl
 impl<'a> Parser<'a> {
-    /*
     pub fn new(input: &'a Tokens) -> Self {
         Self { input, pos: 0 }
     }
-    */
-    pub fn parse(Tokens(t): &'a Tokens) -> Result<Program<'a>, ParseError> {
+    pub fn parse(&self) -> Result<Program<'a>, ParseError> {
         let mut pos: usize = 0;
         let mut ast = vec![];
+        let Tokens(t) = self.input;
         while pos < t.len() {
-            ast.push(AST::Stmt(Stmt::parse(t, &mut pos)?));
+            ast.push(Stmt::parse(t, &mut pos)?);
         }
         Ok(Program(ast))
     }

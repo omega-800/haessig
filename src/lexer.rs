@@ -10,8 +10,14 @@ pub enum TT {
     Dä,
     Isch,
     Git,
+    Gib,
+    Als,
+    Wahr,
+    Falsch,
+    TypR8,
+    TypN8,
+    TypZ8,
     TypZeiche,
-    TypZahl,
     TypWahrheit,
     Str,       // ".*"
     Id,        //
@@ -22,7 +28,7 @@ pub enum TT {
     Invalid,   // invalid
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Token {
     pub token_type: TT,
     pub value: Option<String>,
@@ -30,14 +36,20 @@ pub struct Token {
     pub col: usize,
 }
 
-const TOKSTR: [&str; 9] = [
+const TOKSTR: [&str; 15] = [
     "funktion ",
     "tuen ",
     "mit ",
     "dä ",
     "isch ",
     "git ",
-    "Zeiche ",
+    "gib ",
+    "als ",
+    "wahr ",
+    "falsch ",
+    "R8 ",
+    "N8 ",
+    "Z8 ",
     "Zahl ",
     "Wahrheit ",
 ];
@@ -84,11 +96,12 @@ impl Token {
         }
 
         let mut try_find = |re: &str, ttype: TT| -> Option<Token> {
-            let re_str = Regex::new(re).unwrap();
-            if let Some(m) = re_str.find(input) {
-                let tok = Token::new(ttype, Some(m.as_str().to_owned()), row, *col);
-                *col += m.as_str().chars().count();
-                return Some(tok);
+            if let Ok(re) = Regex::new(re) {
+                if let Some(m) = re.find(input) {
+                    let tok = Token::new(ttype, Some(m.as_str().to_owned()), row, *col);
+                    *col += m.as_str().chars().count();
+                    return Some(tok);
+                }
             }
             None
         };
@@ -107,7 +120,7 @@ impl Token {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Tokens(pub Vec<Token>);
 
 impl<'a> From<&'a str> for Tokens {

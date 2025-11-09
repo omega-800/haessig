@@ -5,7 +5,7 @@
 
 use std::{
     fs::{create_dir, exists, File},
-    io::{self, Write},
+    io::{self, Write}, process::Command,
 };
 mod compiler;
 mod lexer;
@@ -78,16 +78,9 @@ fn write(filename: &str, content: &str) {
 
 fn dothething() {
     let input = "
-funktion hallo_sege {
-  tuen schreie mit \"Hallo welt\";
+funktion test git Wahrheit {
+    gib falsch ;
 };
-funktion chuchichäschtli {
-    dä x isch 2;
-    dä x isch 4;
-    tuen schreie mit \"Hallo welt\";
-    tuen schreie mit y;
-};
-dä y isch 7;
 "
     /*"
 funktion hallo_sege {
@@ -100,6 +93,8 @@ funktion chuchichäschtli {
 };
 "*/;
 
+    // TODO: ffi && raylib speedrun
+
     if !exists("./.build").unwrap_or(false) {
         if let Err(err) = create_dir("./.build") {
             eprintln!("Failed to create build dir: {}", err);
@@ -108,7 +103,7 @@ funktion chuchichäschtli {
     //println!("INPUT:\n{input}");
     write("input.hä", input);
     let toks = Tokens::from(input);
-    write("tokens.txt", &format!("{}", toks));
+    write("tokens.txt", &format!("{:#?}", toks));
     //println!("TOKS:\n{}", toks);
     let ast = Program::try_from(&toks);
     //println!("AST:\n{:#?}", ast);
@@ -117,11 +112,12 @@ funktion chuchichäschtli {
         Ok(ast) => {
             match SemanticAnalyzer::new(&ast).analyze() {
                 Ok(_) => {
-                    let ir = IRGen::new(&ast).generate();
-                    let fasm = Compiler::new(ast).compile();
+                    //let ir = IRGen::new(&ast).generate();
+                    //let fasm = Compiler::new(&ir).compile();
+                    let fasm = "".to_string();
                     //println!("FASM:\n{fasm}");
                     write("fasm.asm", &fasm);
-                    match std::process::Command::new("fasm")
+                    match Command::new("fasm")
                         .arg("./.build/fasm.asm")
                         .arg("./.build/out")
                         .output()

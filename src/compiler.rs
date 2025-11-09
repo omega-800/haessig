@@ -1,4 +1,4 @@
-use crate::parser::{Prim, Program, Stmt, AST};
+use crate::interm::IntermRepr;
 
 fn generate_print(out: &str) -> String {
     "
@@ -10,35 +10,14 @@ syscall                               ;; );
 ".to_string()
 }
 
-fn generate_prim(prim: &Prim) -> String {
-    match prim {
-        Prim::Str(str) => format!(
-                "
-{}
-",
-                str
-            ),
-        Prim::Id(id) => todo!(),
-        Prim::U8(_) => todo!(),
-    }
-}
-
-fn generate_stmt(stmt: &Stmt) -> String {
-    match stmt {
-        Stmt::FunAss(fun_ass) => todo!(),
-        Stmt::VarAss(var_ass) => todo!(),
-        Stmt::StEx(st_ex) => todo!(),
-    }
-}
-
 pub struct Compiler<'a> {
-    input: Program<'a>,
+    input: &'a IntermRepr<'a>,
     stack_size: u64,
     output: String,
 }
 
 impl<'a> Compiler<'a> {
-    pub fn new(input: Program<'a>) -> Self {
+    pub fn new(input: &'a IntermRepr<'a>) -> Self {
         Self {
             input,
             stack_size: 0,
@@ -53,14 +32,6 @@ _start:
     }
 
     pub fn compile(&mut self) -> String {
-        let Program(p) = &self.input;
-        for s in p {
-            match s {
-                AST::Stmt(stmt) => self.output += &generate_stmt(stmt),
-                AST::Expr(expr) => todo!(),
-            }
-        }
-
         self.output += "
     mov eax, 60                           ;; SYS_exit(                // Call the exit exit(2) syscall
     mov edi, 0                            ;;     EXIT_SUCCESS,        // Exit with success exit code, required if we don't want a segfault

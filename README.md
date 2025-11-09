@@ -32,6 +32,22 @@ schrei mit "s resultat isch: " plus wasauimmer;
 // s resultat isch: 18
 ```
 
+### current implementation
+
+```EBNF
+<Program>       ::= <Stmt>+
+<Expr>          ::= (<StEx> | <Prim>)
+<Prim>          ::= (<Str> | <Number> | <Id>)
+<Stmt>          ::= (<FunAss> | <VarAss> | <StEx> | <Ret>)) ';'
+<FunAss>        ::= 'funktion' <Id> ('git' <Type>)? <Block>
+<VarAss>        ::= 'dä' <Id> 'isch' <Expr> ('als' <Type>)?
+<StEx>          ::= (<Call> | <Block>)
+<Call>          ::= 'tuen' <Id> ('mit' (<Expr> ',')* <Expr>)?
+<Block>         ::= '{' <Stmt>+ '}'
+<Ret>           ::= 'gib' <Expr> ';'
+<Type>          ::= ('N8' | 'Z8' | 'R8' | 'Zeiche' | 'Wahrheit')
+```
+
 ### EBNF
 
 ```EBNF
@@ -84,5 +100,5 @@ schrei mit "s resultat isch: " plus wasauimmer;
 ID  = [a-zA-Z_][0-9a-zA-Z_'-]*
 STR = "([^"]|[^\\]\\")*"
 NUM = -?[0-9]*([0-9]|([0-9]\.[0-9]))[0-9]*
-BIN = (richtig|falsch)
+BIN = (wahr|falsch)
 ```
