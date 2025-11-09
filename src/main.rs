@@ -16,7 +16,7 @@ use lexer::Tokens;
 use parser::Program;
 use seman::SemanticAnalyzer;
 
-use crate::{compiler::Compiler, interm::IRGen};
+use crate::{compiler::Compiler, interm::IRGen, lexer::Lexer, parser::Parser};
 
 fn main() {
     // TODO: remove or implement
@@ -91,7 +91,7 @@ funktion chuchichäschtli {
   dä wert isch \"sowas\";
   tuen hallo_sege mit wert;
 };
-"*/;
+"*/.to_string();
 
     // TODO: ffi && raylib speedrun
 
@@ -101,15 +101,15 @@ funktion chuchichäschtli {
         }
     }
     //println!("INPUT:\n{input}");
-    write("input.hä", input);
-    let toks = Tokens::from(input);
+    write("input.hä", &input);
+    let toks = Lexer::new(input).lex();
     write("tokens.txt", &format!("{:#?}", toks));
     //println!("TOKS:\n{}", toks);
-    let ast = Program::try_from(&toks);
+    let ast = Parser::new(&toks).parse();
     //println!("AST:\n{:#?}", ast);
-    write("ast.txt", &format!("{:#?}", ast));
     match ast {
         Ok(ast) => {
+            write("ast.txt", &format!("{:#?}", ast));
             match SemanticAnalyzer::new(&ast).analyze() {
                 Ok(_) => {
                     //let ir = IRGen::new(&ast).generate();

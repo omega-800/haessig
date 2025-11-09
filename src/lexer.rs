@@ -28,7 +28,7 @@ pub enum TT {
     Invalid,   // invalid
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TT,
     pub value: Option<String>,
@@ -36,6 +36,7 @@ pub struct Token {
     pub col: usize,
 }
 
+// TODO: use separators instead of space
 const TOKSTR: [&str; 15] = [
     "funktion ",
     "tuen ",
@@ -120,35 +121,24 @@ impl Token {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Tokens(pub Vec<Token>);
+pub type Tokens = Vec<Token>;
 
-impl<'a> From<&'a str> for Tokens {
-    fn from(value: &'a str) -> Self {
-        Lexer::new(value.to_string()).lex()
-    }
-}
-
-impl Display for Tokens {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let Tokens(v) = self;
-        write!(
-            f,
-            "[ {} ]",
-            v.iter()
-                .map(|t| {
-                    format!(
-                        "{:?}{}",
-                        t.token_type,
-                        t.value
-                            .clone()
-                            .map_or("".to_string(), |v| format!(" ({})", v))
-                    )
-                })
-                .collect::<Vec<String>>()
-                .join(", ")
-        )
-    }
+fn display_tokens(v: &Tokens) -> String {
+    format!(
+        "[ {} ]",
+        v.iter()
+            .map(|t| {
+                format!(
+                    "{:?}{}",
+                    t.token_type,
+                    t.value
+                        .clone()
+                        .map_or("".to_string(), |v| format!(" ({})", v))
+                )
+            })
+            .collect::<Vec<String>>()
+            .join(", ")
+    )
 }
 
 pub struct Lexer {
@@ -183,6 +173,6 @@ impl Lexer {
             self.row += 1;
             self.col = 0;
         });
-        Tokens(res)
+        res
     }
 }

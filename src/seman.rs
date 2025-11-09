@@ -135,8 +135,7 @@ impl<'a> SemanticAnalyzer<'a> {
     pub fn analyze(&'a mut self) -> Result<(), SemAnError> {
         // TODO: hoisting
         // TODO: type checking
-        let Program(ast) = self.ast;
-        for stmt in ast.iter() {
+        for stmt in self.ast.iter() {
             stmt.analyze(self)?;
         }
         Ok(())
