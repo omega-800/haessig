@@ -44,7 +44,7 @@ schrei mit "s resultat isch: " plus wasauimmer;
 <StEx>          ::= (<Call> | <Block>)
 <Call>          ::= 'tuen' <Id> ('mit' (<Expr> ',')* <Expr>)?
 <Block>         ::= '{' <Stmt>+ '}'
-<Ret>           ::= 'gib' <Expr> ';'
+<Ret>           ::= 'gib' <Expr>
 <Type>          ::= ('N8' | 'Z8' | 'R8' | 'Zeiche' | 'Wahrheit')
 ```
 

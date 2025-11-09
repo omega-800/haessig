@@ -85,11 +85,11 @@ impl PrimType {
 #[derive(Debug, Clone)]
 pub enum ParseError {
     NoTokensLeft,
-    UnexpectedToken(Token),
-    ExpectedToken(TT, Token),
-    ExpectedType(Token),
-    ExpectedPrim(Token),
-    MissingValue(TT, Token),
+    UnexpectedToken(String, Token),
+    ExpectedToken(String, TT, Token),
+    ExpectedType(String, Token),
+    ExpectedPrim(String, Token),
+    MissingValue(String, TT, Token),
 }
 
 impl Display for ParseError {
@@ -99,49 +99,69 @@ impl Display for ParseError {
         match self {
             ParseError::NoTokensLeft => write!(f, "{}: No tokens left", msg),
 
-            ParseError::UnexpectedToken(token) => {
-                write!(f, "{}: Unexpected token at {}", msg, pos(token))
+            ParseError::UnexpectedToken(t, token) => {
+                write!(
+                    f,
+                    "{}: Unexpected token at {} parsing {}",
+                    msg,
+                    pos(token),
+                    t
+                )
             }
-            ParseError::ExpectedToken(tt, token) => write!(
+            ParseError::ExpectedToken(t, tt, token) => write!(
                 f,
-                "{}: Expected token {:?} at {}, got {:?}",
+                "{}: Expected token {:?} at {}, got {:?} parsing {}",
                 msg,
                 tt,
                 pos(token),
-                token.token_type
+                token.token_type,
+                t
             ),
-            ParseError::ExpectedType(token) => {
-                write!(f, "{}: Expected type at {}", msg, pos(token))
+            ParseError::ExpectedType(t, token) => {
+                write!(f, "{}: Expected type at {} parsing {}", msg, pos(token), t)
             }
-            ParseError::ExpectedPrim(token) => {
-                write!(f, "{}: Expected primitive at {}", msg, pos(token))
+            ParseError::ExpectedPrim(t, token) => {
+                write!(
+                    f,
+                    "{}: Expected primitive at {} parsing {}",
+                    msg,
+                    pos(token),
+                    t
+                )
             }
-            ParseError::MissingValue(tt, token) => {
-                write!(f, "{}: Expected value for {:?} at {}", msg, tt, pos(token))
+            ParseError::MissingValue(t, tt, token) => {
+                write!(
+                    f,
+                    "{}: Expected value for {:?} at {} parsing {}",
+                    msg,
+                    tt,
+                    pos(token),
+                    t
+                )
             }
         }
     }
 }
 
-macro_rules! expect_id_tok {
-    ( $self:ident ) => {{
+macro_rules! expect_id_next {
+    ( $t:expr, $self:ident ) => {{
         $self.consume();
         let id_tok = $self.cur_tok()?;
         if id_tok.token_type != TT::Id {
-            return Err(ParseError::ExpectedToken(TT::Id, $self.get_tok()));
+            return Err(ParseError::ExpectedToken($t, TT::Id, $self.get_tok()));
         }
         let Some(id) = id_tok.value.as_ref() else {
-            return Err(ParseError::MissingValue(TT::Id, $self.get_tok()));
+            return Err(ParseError::MissingValue($t, TT::Id, $self.get_tok()));
         };
         id
     }};
 }
-macro_rules! expect_next_tok {
-    ( $self:ident, $y:expr ) => {{
-        $self.consume();
+macro_rules! consume_next_tok {
+    ( $t:expr, $self:ident, $y:expr ) => {{
         if ($self.cur_tok()?).token_type != $y {
-            return Err(ParseError::ExpectedToken($y, $self.get_tok()));
+            return Err(ParseError::ExpectedToken($t, $y, $self.get_tok()));
         }
+        $self.consume();
     }};
 }
 
@@ -172,8 +192,7 @@ impl<'a> Parser<'a> {
         self.tokens[self.pos].clone()
     }
     pub fn parse_fun_ass(&mut self) -> Result<FunAss<'a>, ParseError> {
-        self.consume();
-        let id = expect_id_tok!(self);
+        let id = expect_id_next!("FunAss".to_string(), self);
         self.consume();
         //TODO: args
         let mut ret = None;
@@ -186,20 +205,22 @@ impl<'a> Parser<'a> {
                 self.consume();
                 ret = Some(prim_type);
             } else {
-                return Err(ParseError::ExpectedType(self.get_tok()));
+                return Err(ParseError::ExpectedType(
+                    "FunAss".to_string(),
+                    self.get_tok(),
+                ));
             }
         }
         let body = self.parse_block()?;
 
         // FIXME: fight the borrow checker harder
         // Ok(FunAss {id, body, ret})
-        return Err(ParseError::NoTokensLeft);
+        Err(ParseError::NoTokensLeft)
     }
     pub fn parse_var_ass(&mut self) -> Result<VarAss<'a>, ParseError> {
+        let id = expect_id_next!("VarAss".to_string(), self);
         self.consume();
-        let id = expect_id_tok!(self);
-        expect_next_tok!(self, TT::Isch);
-        self.consume();
+        consume_next_tok!("VarAss".to_string(), self, TT::Isch);
         let value = self.parse_expr()?;
         let mut pt = None;
         if (self.cur_tok()?).token_type == TT::Als {
@@ -207,12 +228,15 @@ impl<'a> Parser<'a> {
             pt = PrimType::from_tt((self.cur_tok()?).token_type);
             self.consume();
             if pt.is_none() {
-                return Err(ParseError::ExpectedType(self.get_tok()));
+                return Err(ParseError::ExpectedType(
+                    "VarAss".to_string(),
+                    self.get_tok(),
+                ));
             }
         }
         // FIXME: fight the borrow checker harder
         // Ok(VarAss { id, value, pt })
-        return Err(ParseError::NoTokensLeft);
+        Err(ParseError::NoTokensLeft)
     }
     pub fn parse_expr(&mut self) -> Result<Expr<'a>, ParseError> {
         match (self.cur_tok()?).token_type {
@@ -224,11 +248,17 @@ impl<'a> Parser<'a> {
         self.consume();
         let mut stmts = vec![];
         // FIXME: smells fishy
-        while let Ok(s) = self.parse_stmt() {
-            stmts.push(s);
+        let mut prev = self.pos;
+        loop {
+            if let Ok(s) = self.parse_stmt() {
+                prev = self.pos;
+                stmts.push(s);
+            } else {
+                self.pos = prev;
+                break;
+            }
         }
-        expect_next_tok!(self, TT::RBrace);
-        self.consume();
+        consume_next_tok!("Block".to_string(), self, TT::RBrace);
         Ok(Block { stmts })
     }
     pub fn parse_prim(&mut self) -> Result<Prim<'a>, ParseError> {
@@ -243,13 +273,13 @@ impl<'a> Parser<'a> {
             // FIXME: fight the borrow checker harder
             //TT::Str => Ok(Prim::Str(tok.value.as_ref().map_or("", |v| v))),
             //TT::Id => Ok(Prim::Id(tok.value.as_ref().map_or("", |v| v))),
-            _ => Err(ParseError::ExpectedPrim(self.get_tok())),
+            _ => Err(ParseError::ExpectedPrim("Prim".to_string(), self.get_tok())),
         }
     }
     pub fn parse_call(&mut self) -> Result<Call<'a>, ParseError> {
+        let id = expect_id_next!("Call".to_string(), self);
         self.consume();
-        let id = expect_id_tok!(self);
-        expect_next_tok!(self, TT::Mit);
+        consume_next_tok!("Call".to_string(), self, TT::Mit);
         let mut args = vec![];
         // FIXME: commas
         // FIXME: smells fishy
@@ -259,21 +289,22 @@ impl<'a> Parser<'a> {
 
         // FIXME: fight the borrow checker harder
         //Ok(Call { id, args })
-        return Err(ParseError::NoTokensLeft);
+        Err(ParseError::NoTokensLeft)
     }
     pub fn parse_ret(&mut self) -> Result<Ret<'a>, ParseError> {
         self.consume();
-        let ret = Ok(Ret {
+        Ok(Ret {
             expr: self.parse_expr()?,
-        });
-        expect_next_tok!(self, TT::Semicolon);
-        ret
+        })
     }
     pub fn parse_st_ex(&mut self) -> Result<StEx<'a>, ParseError> {
         match (self.cur_tok()?).token_type {
             TT::Tuen => Ok(StEx::Call(self.parse_call()?)),
             TT::LBrace => Ok(StEx::Block(self.parse_block()?)),
-            _ => Err(ParseError::UnexpectedToken(self.get_tok())),
+            _ => Err(ParseError::UnexpectedToken(
+                "StEx".to_string(),
+                self.get_tok(),
+            )),
         }
     }
     pub fn parse_stmt(&mut self) -> Result<Stmt<'a>, ParseError> {
@@ -283,9 +314,12 @@ impl<'a> Parser<'a> {
             TT::Dä => Ok(Stmt::VarAss(self.parse_var_ass()?)),
             TT::Gib => Ok(Stmt::Ret(self.parse_ret()?)),
             TT::Tuen | TT::LBrace => Ok(Stmt::StEx(self.parse_st_ex()?)),
-            _ => Err(ParseError::UnexpectedToken(self.get_tok())),
+            _ => Err(ParseError::UnexpectedToken(
+                "Stmt".to_string(),
+                self.get_tok(),
+            )),
         };
-        expect_next_tok!(self, TT::Semicolon);
+        consume_next_tok!("Stmt".to_string(), self, TT::Semicolon);
         ret
     }
 }

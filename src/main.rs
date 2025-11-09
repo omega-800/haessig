@@ -12,11 +12,9 @@ mod lexer;
 mod parser;
 mod seman;
 mod interm;
-use lexer::Tokens;
-use parser::Program;
 use seman::SemanticAnalyzer;
 
-use crate::{compiler::Compiler, interm::IRGen, lexer::Lexer, parser::Parser};
+use crate::{lexer::Lexer, parser::Parser};
 
 fn main() {
     // TODO: remove or implement
