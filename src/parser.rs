@@ -247,16 +247,8 @@ impl<'a> Parser<'a> {
     pub fn parse_block(&mut self) -> Result<Block<'a>, ParseError> {
         self.consume();
         let mut stmts = vec![];
-        // FIXME: smells fishy
-        let mut prev = self.pos;
-        loop {
-            if let Ok(s) = self.parse_stmt() {
-                prev = self.pos;
-                stmts.push(s);
-            } else {
-                self.pos = prev;
-                break;
-            }
+        while (self.cur_tok()?).token_type != TT::RBrace {
+            stmts.push(self.parse_stmt()?);
         }
         consume_next_tok!("Block".to_string(), self, TT::RBrace);
         Ok(Block { stmts })
@@ -281,15 +273,20 @@ impl<'a> Parser<'a> {
         self.consume();
         consume_next_tok!("Call".to_string(), self, TT::Mit);
         let mut args = vec![];
-        // FIXME: commas
-        // FIXME: smells fishy
-        while let Ok(a) = self.parse_expr() {
-            args.push(a);
+        let mut prev = self.pos;
+        loop {
+            if let Ok(a) = self.parse_expr() {
+                args.push(a);
+                prev = self.pos;
+            } else {
+                self.pos = prev;
+            }
+            if (self.cur_tok()?).token_type != TT::Comma {
+                break;
+            }
+            self.consume();
         }
-
-        // FIXME: fight the borrow checker harder
-        //Ok(Call { id, args })
-        Err(ParseError::NoTokensLeft)
+        Ok(Call { id, args })
     }
     pub fn parse_ret(&mut self) -> Result<Ret<'a>, ParseError> {
         self.consume();

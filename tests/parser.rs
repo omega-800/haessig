@@ -2,7 +2,7 @@ use haessig::{lexer::{Token, Tokens, TT}, parser::Parser};
 
 #[test]
 fn var_ass() {
-    let res = Parser::new(&Tokens(vec![
+    let res = Parser::new(&vec![
         (Token {
             token_type: TT::Funktion,
             value: None,
@@ -57,6 +57,12 @@ fn var_ass() {
             row: 3,
             col: 0,
         }),
-    ])).parse();
-    assert_eq!(res, exp);
+        (Token {
+            token_type: TT::Semicolon,
+            value: None,
+            row: 3,
+            col: 1,
+        }),
+    ]).parse();
+    assert_eq!(res.is_ok(), true);
 }

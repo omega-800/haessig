@@ -11,7 +11,7 @@ funktion test git Wahrheit {
         .to_string(),
     )
     .lex();
-    let exp = Tokens(vec![
+    let exp = vec![
         (Token {
             token_type: TT::Funktion,
             value: None,
@@ -66,6 +66,6 @@ funktion test git Wahrheit {
             row: 3,
             col: 0,
         }),
-    ]);
+    ];
     assert_eq!(res, exp);
 }

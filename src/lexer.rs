@@ -24,6 +24,7 @@ pub enum TT {
     LBrace,    // {
     RBrace,    // }
     Semicolon, // ;
+    Comma, // ,
     Invalid,   // invalid
 }
 
@@ -62,6 +63,7 @@ impl Token {
                 '{' => TT::LBrace,
                 '}' => TT::RBrace,
                 ';' => TT::Semicolon,
+                ',' => TT::Comma,
                 _ => TT::Invalid,
             },
             row,
@@ -160,7 +162,7 @@ impl Lexer {
         self.input.lines().for_each(|l| {
             while let Some(ch) = l.chars().nth(self.col) {
                 match ch {
-                    '{' | '}' | ';' => res.push(Token::from_char(ch, self.row, &mut self.col)),
+                    '{' | '}' | ';' | ',' => res.push(Token::from_char(ch, self.row, &mut self.col)),
                     ' ' => self.col += 1,
                     _ => res.push(Token::from_string(
                         &mut l.chars().skip(self.col).collect::<String>(),
