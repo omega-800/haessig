@@ -43,7 +43,7 @@ pub struct Ret<'a> {
 #[derive(Debug, Clone)]
 pub enum Prim<'a> {
     Bool(bool),
-    Str(&'a str),
+    Str(String),
     R8(u8),
     Id(&'a str),
 }
@@ -53,19 +53,19 @@ pub struct Block<'a> {
 }
 #[derive(Debug, Clone)]
 pub struct VarAss<'a> {
-    pub id: &'a str,
+    pub id: String,
     pub value: Expr<'a>,
     pub pt: Option<PrimType>,
 }
 #[derive(Debug, Clone)]
 pub struct FunAss<'a> {
-    pub id: &'a str,
+    pub id: String,
     pub body: Block<'a>,
     pub ret: Option<PrimType>,
 }
 #[derive(Debug, Clone)]
 pub struct Call<'a> {
-    pub id: &'a str,
+    pub id: String,
     pub args: Vec<Expr<'a>>,
 }
 
@@ -153,7 +153,7 @@ macro_rules! expect_id_next {
         let Some(id) = id_tok.value.as_ref() else {
             return Err(ParseError::MissingValue($t, TT::Id, $self.get_tok()));
         };
-        id
+        id.clone()
     }};
 }
 macro_rules! consume_next_tok {

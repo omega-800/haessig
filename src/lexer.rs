@@ -1,4 +1,3 @@
-
 use regex::Regex;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -24,7 +23,7 @@ pub enum TT {
     LBrace,    // {
     RBrace,    // }
     Semicolon, // ;
-    Comma, // ,
+    Comma,     // ,
     Invalid,   // invalid
 }
 
@@ -162,7 +161,9 @@ impl Lexer {
         self.input.lines().for_each(|l| {
             while let Some(ch) = l.chars().nth(self.col) {
                 match ch {
-                    '{' | '}' | ';' | ',' => res.push(Token::from_char(ch, self.row, &mut self.col)),
+                    '{' | '}' | ';' | ',' => {
+                        res.push(Token::from_char(ch, self.row, &mut self.col))
+                    }
                     ' ' => self.col += 1,
                     _ => res.push(Token::from_string(
                         &mut l.chars().skip(self.col).collect::<String>(),

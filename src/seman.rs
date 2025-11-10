@@ -40,12 +40,12 @@ impl<'a> Analyzable<'a> for Stmt<'a> {
     fn analyze(&'a self, ctx: &mut SemanticAnalyzer<'a>) -> Result<(), SemAnError> {
         match self {
             Stmt::FunAss(fun_ass) => {
-                        ctx.add_symbol(fun_ass.id, &fun_ass.ret);
-                        fun_ass.body.analyze(ctx)?;
-                    }
+                ctx.add_symbol(fun_ass.id.as_str(), &fun_ass.ret);
+                fun_ass.body.analyze(ctx)?;
+            }
             Stmt::VarAss(var_ass) => var_ass.analyze(ctx)?,
             Stmt::StEx(st_ex) => st_ex.analyze(ctx)?,
-            Stmt::Ret(ret) => ret.expr.analyze(ctx)?
+            Stmt::Ret(ret) => ret.expr.analyze(ctx)?,
         }
         Ok(())
     }
@@ -87,7 +87,7 @@ impl<'a> Analyzable<'a> for StEx<'a> {
     fn analyze(&'a self, ctx: &mut SemanticAnalyzer<'a>) -> Result<(), SemAnError> {
         match self {
             StEx::Call(call) => {
-                if !ctx.has_symbol(call.id) && !BUILTINS.contains(&call.id) {
+                if !ctx.has_symbol(call.id.as_str()) && !BUILTINS.contains(&call.id.as_str()) {
                     return Err(SemAnError::new(format!(
                         "Trying to call function `{}` which is not defined",
                         call.id
@@ -112,7 +112,7 @@ impl<'a> Analyzable<'a> for VarAss<'a> {
     fn analyze(&'a self, ctx: &mut SemanticAnalyzer<'a>) -> Result<(), SemAnError> {
         match &self.value {
             Expr::StEx(st_ex) => st_ex.analyze(ctx)?,
-            Expr::Prim(prim) => ctx.add_prim(prim, self.id)?,
+            Expr::Prim(prim) => ctx.add_prim(prim, self.id.as_str())?,
         }
         Ok(())
     }
