@@ -76,20 +76,8 @@ fn write(filename: &str, content: &str) {
 
 fn dothething() {
     let input = "
-funktion test git Wahrheit {
-    gib falsch ;
-};
-"
-    /*"
-funktion hallo_sege {
-  tuen schreie mit \"Hallo welt\";
-};
-
-funktion chuchichäschtli {
-  dä wert isch \"sowas\";
-  tuen hallo_sege mit wert;
-};
-"*/.to_string();
+dä x isch \"hallo\";
+" .to_string();
 
     // TODO: ffi && raylib speedrun
 

@@ -19,6 +19,10 @@ impl Display for PrimType {
     }
 }
 
+pub trait Parseable<'a> {
+    fn parse(ctx: &'a mut Parser<'a>) -> Result<Self, ParseError<'a>> where Self: Sized;
+}
+
 #[derive(Debug, Clone)]
 pub enum StEx<'a> {
     Call(Call<'a>),
@@ -69,6 +73,30 @@ pub struct Call<'a> {
     pub args: Vec<Expr<'a>>,
 }
 
+impl<'a> Parseable<'a> for Prim<'a> {
+    fn parse(ctx: &'a mut Parser<'a>) -> Result<Self, ParseError<'a>> where Self: Sized {
+
+        let tok = ctx.cur_tok()?;
+        match tok.token_type {
+            // TODO: error handling
+            TT::Num => Ok(Prim::R8(
+                tok.value.as_ref().map_or(0, |v| v.parse().unwrap_or(0)),
+            )),
+            TT::Wahr => Ok(Prim::Bool(true)),
+            TT::Falsch => Ok(Prim::Bool(false)),
+            // FIXME: fight the borrow checker harder
+            TT::Str => Ok(Prim::Str(tok.value.as_ref().map_or("", |v| v))),
+            TT::Id => Ok(Prim::Id(tok.value.as_ref().map_or("", |v| v))),
+            _ => Err(ParseError::ExpectedPrim("Prim".to_string(), ctx.get_tok())),
+        }
+    }
+}
+impl<'a> Parseable<'a> for Stmt<'a> {
+    fn parse(ctx: &'a mut Parser<'a>) -> Result<Self, ParseError<'a>> where Self: Sized {
+        todo!()
+    }
+}
+
 impl PrimType {
     fn from_tt(value: TT) -> Option<Self> {
         match value {
@@ -83,16 +111,16 @@ impl PrimType {
 }
 
 #[derive(Debug, Clone)]
-pub enum ParseError {
+pub enum ParseError<'a> {
     NoTokensLeft,
-    UnexpectedToken(String, Token),
-    ExpectedToken(String, TT, Token),
-    ExpectedType(String, Token),
-    ExpectedPrim(String, Token),
-    MissingValue(String, TT, Token),
+    UnexpectedToken(String, Token<'a>),
+    ExpectedToken(String, TT, Token<'a>),
+    ExpectedType(String, Token<'a>),
+    ExpectedPrim(String, Token<'a>),
+    MissingValue(String, TT, Token<'a>),
 }
 
-impl Display for ParseError {
+impl<'a> Display for ParseError<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let msg = "Your code is bonkers";
         let pos = |tok: &Token| format!("row {} col {}", tok.row, tok.col);
@@ -166,18 +194,18 @@ macro_rules! consume_next_tok {
 }
 
 pub struct Parser<'a> {
-    tokens: &'a Tokens,
+    tokens: &'a Tokens<'a>,
     pos: usize,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a Tokens) -> Self {
+    pub fn new(tokens: &'a Tokens<'a>) -> Self {
         Self { tokens, pos: 0 }
     }
-    pub fn parse(&mut self) -> Result<Program<'a>, ParseError> {
+    pub fn parse(&'a mut self) -> Result<Program<'a>, ParseError> {
         let mut ast = vec![];
         while self.pos < self.tokens.len() {
-            let stmt = self.parse_stmt()?;
+            let stmt = Stmt::parse(self)?;
             ast.push(stmt);
         }
         Ok(ast)
@@ -268,7 +296,7 @@ impl<'a> Parser<'a> {
             _ => Err(ParseError::ExpectedPrim("Prim".to_string(), self.get_tok())),
         }
     }
-    pub fn parse_call(&mut self) -> Result<Call<'a>, ParseError> {
+    pub fn parse_call(&'a mut self) -> Result<Call<'a>, ParseError> {
         let id = expect_id_next!("Call".to_string(), self);
         self.consume();
         consume_next_tok!("Call".to_string(), self, TT::Mit);
@@ -286,7 +314,8 @@ impl<'a> Parser<'a> {
             }
             self.consume();
         }
-        Ok(Call { id, args })
+        //Ok(Call { id, args })
+        Err(ParseError::NoTokensLeft)
     }
     pub fn parse_ret(&mut self) -> Result<Ret<'a>, ParseError> {
         self.consume();
