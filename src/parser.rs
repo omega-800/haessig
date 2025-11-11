@@ -146,7 +146,10 @@ impl Display for ParseError {
 macro_rules! expect_id_next {
     ( $t:expr, $self:ident ) => {{
         $self.consume();
-        let id_tok = $self.tokens.get($self.pos).ok_or(ParseError::NoTokensLeft)?;
+        let id_tok = $self
+            .tokens
+            .get($self.pos)
+            .ok_or(ParseError::NoTokensLeft)?;
         if id_tok.token_type != TT::Id {
             return Err(ParseError::ExpectedToken($t, TT::Id, $self.get_tok()));
         }
@@ -158,7 +161,11 @@ macro_rules! expect_id_next {
 }
 macro_rules! consume_next_tok {
     ( $t:expr, $self:ident, $y:expr ) => {{
-        if ($self.cur_tok()?).token_type != $y {
+        let cur_tok = $self
+            .tokens
+            .get($self.pos)
+            .ok_or(ParseError::NoTokensLeft)?;
+        if cur_tok.token_type != $y {
             return Err(ParseError::ExpectedToken($t, $y, $self.get_tok()));
         }
         $self.consume();
@@ -176,10 +183,17 @@ impl<'a> Parser<'a> {
     }
     pub fn parse(&mut self) -> Result<Program<'a>, ParseError> {
         let mut ast = vec![];
+
+        for stmt in self.tokens.iter() {
+            let stmt = Stmt::parse(self)?;
+            ast.push(stmt);
+        }
+        /*
         while self.pos < self.tokens.len() {
             let stmt = Stmt::parse(self)?;
             ast.push(stmt);
         }
+*/
         Ok(ast)
     }
     pub fn consume(&mut self) {
@@ -192,7 +206,6 @@ impl<'a> Parser<'a> {
         self.tokens[self.pos].clone()
     }
 }
-
 
 pub trait Parseable<'a> {
     fn parse(ctx: &'a mut Parser<'a>) -> Result<Self, ParseError>
@@ -207,11 +220,11 @@ impl<'a> Parseable<'a> for FunAss<'a> {
         let mut ret = None;
         let git_tok = ctx.cur_tok()?;
         if git_tok.token_type == TT::Git {
-        ctx.consume();
+            ctx.consume();
 
             let type_tok = ctx.cur_tok()?;
             if let Some(prim_type) = PrimType::from_tt(type_tok.token_type) {
-        ctx.consume();
+                ctx.consume();
                 ret = Some(prim_type);
             } else {
                 return Err(ParseError::ExpectedType(
@@ -222,35 +235,44 @@ impl<'a> Parseable<'a> for FunAss<'a> {
         }
         let body = Block::parse(ctx)?;
 
-         Ok(FunAss {id, body, ret})
+        Ok(FunAss { id, body, ret })
     }
 }
 
 impl<'a> Parseable<'a> for Block<'a> {
-    fn parse(ctx: &mut Parser) -> Result<Self, ParseError> {
+    fn parse(ctx: &mut Parser<'a>) -> Result<Self, ParseError> {
         ctx.consume();
         let mut stmts = vec![];
         while (ctx.cur_tok()?).token_type != TT::RBrace {
-            stmts.push(ctx.parse_stmt()?);
+            stmts.push(Stmt::parse(ctx)?);
         }
         consume_next_tok!("Block".to_string(), ctx, TT::RBrace);
         Ok(Block { stmts })
     }
 }
 impl<'a> Parseable<'a> for Stmt<'a> {
-    fn parse(ctx: &'a mut Parser<'a>) -> Result<Self, ParseError>
-    where
-        Self: Sized {
-        todo!()
+    fn parse(ctx: &'a mut Parser<'a>) -> Result<Self, ParseError> {
+        let tok = ctx.cur_tok()?;
+        let ret = match tok.token_type {
+            TT::Funktion => Ok(Stmt::FunAss(FunAss::parse(ctx)?)),
+            TT::Dä => Ok(Stmt::VarAss(VarAss::parse(ctx)?)),
+            TT::Gib => Ok(Stmt::Ret(Ret::parse(ctx)?)),
+            TT::Tuen | TT::LBrace => Ok(Stmt::StEx(StEx::parse(ctx)?)),
+            _ => Err(ParseError::UnexpectedToken(
+                "Stmt".to_string(),
+                ctx.get_tok(),
+            )),
+        };
+        consume_next_tok!("Stmt".to_string(), ctx, TT::Semicolon);
+        ret
     }
 }
-
-
-    pub fn parse_var_ass(ctx: &mut Parser) -> Result<VarAss<'a>, ParseError> {
+impl<'a> Parseable<'a> for VarAss<'a> {
+    fn parse(ctx: &'a mut Parser<'a>) -> Result<Self, ParseError> {
         let id = expect_id_next!("VarAss".to_string(), ctx);
         ctx.consume();
         consume_next_tok!("VarAss".to_string(), ctx, TT::Isch);
-        let value = ctx.parse_expr()?;
+        let value = Expr::parse(ctx)?;
         let mut pt = None;
         if (ctx.cur_tok()?).token_type == TT::Als {
             ctx.consume();
@@ -267,13 +289,18 @@ impl<'a> Parseable<'a> for Stmt<'a> {
         // Ok(VarAss { id, value, pt })
         Err(ParseError::NoTokensLeft)
     }
-    pub fn parse_expr(ctx: &mut Parser) -> Result<Expr<'a>, ParseError> {
+}
+impl<'a> Parseable<'a> for Expr<'a> {
+    fn parse(ctx: &'a mut Parser<'a>) -> Result<Self, ParseError> {
         match (ctx.cur_tok()?).token_type {
-            TT::Tuen | TT::LBrace => Ok(Expr::StEx(ctx.parse_st_ex()?)),
-            _ => Ok(Expr::Prim(ctx.parse_prim()?)),
+            TT::Tuen | TT::LBrace => Ok(Expr::StEx(StEx::parse(ctx)?)),
+            _ => Ok(Expr::Prim(Prim::parse(ctx)?)),
         }
     }
-    pub fn parse_prim(ctx: &mut Parser) -> Result<Prim<'a>, ParseError> {
+}
+
+impl<'a> Parseable<'a> for Prim<'a> {
+    fn parse(ctx: &'a mut Parser<'a>) -> Result<Self, ParseError> {
         let tok = ctx.cur_tok()?;
         match tok.token_type {
             // TODO: error handling
@@ -288,14 +315,16 @@ impl<'a> Parseable<'a> for Stmt<'a> {
             _ => Err(ParseError::ExpectedPrim("Prim".to_string(), ctx.get_tok())),
         }
     }
-    pub fn parse_call(ctx: &mut Parser) -> Result<Call<'a>, ParseError> {
+}
+impl<'a> Parseable<'a> for Call<'a> {
+    fn parse(ctx: &'a mut Parser<'a>) -> Result<Self, ParseError> {
         let id = expect_id_next!("Call".to_string(), ctx);
         ctx.consume();
         consume_next_tok!("Call".to_string(), ctx, TT::Mit);
         let mut args = vec![];
         let mut prev = ctx.pos;
         loop {
-            if let Ok(a) = ctx.parse_expr() {
+            if let Ok(a) = Expr::parse(ctx) {
                 args.push(a);
                 prev = ctx.pos;
             } else {
@@ -309,34 +338,24 @@ impl<'a> Parseable<'a> for Stmt<'a> {
         //Ok(Call { id, args })
         Err(ParseError::NoTokensLeft)
     }
-    pub fn parse_ret(ctx: &mut Parser) -> Result<Ret<'a>, ParseError> {
+}
+impl<'a> Parseable<'a> for Ret<'a> {
+    fn parse(ctx: &'a mut Parser<'a>) -> Result<Self, ParseError> {
         ctx.consume();
         Ok(Ret {
-            expr: ctx.parse_expr()?,
+            expr: Expr::parse(ctx)?,
         })
     }
-    pub fn parse_st_ex(ctx: &mut Parser) -> Result<StEx<'a>, ParseError> {
+}
+impl<'a> Parseable<'a> for StEx<'a> {
+    fn parse(ctx: &'a mut Parser<'a>) -> Result<Self, ParseError> {
         match (ctx.cur_tok()?).token_type {
-            TT::Tuen => Ok(StEx::Call(ctx.parse_call()?)),
-            TT::LBrace => Ok(StEx::Block(ctx.parse_block()?)),
+            TT::Tuen => Ok(StEx::Call(Call::parse(ctx)?)),
+            TT::LBrace => Ok(StEx::Block(Block::parse(ctx)?)),
             _ => Err(ParseError::UnexpectedToken(
                 "StEx".to_string(),
                 ctx.get_tok(),
             )),
         }
     }
-    pub fn parse_stmt(ctx: &mut Parser) -> Result<Stmt<'a>, ParseError> {
-        let tok = ctx.cur_tok()?;
-        let ret = match tok.token_type {
-            TT::Funktion => Ok(Stmt::FunAss(ctx.parse_fun_ass()?)),
-            TT::Dä => Ok(Stmt::VarAss(ctx.parse_var_ass()?)),
-            TT::Gib => Ok(Stmt::Ret(ctx.parse_ret()?)),
-            TT::Tuen | TT::LBrace => Ok(Stmt::StEx(ctx.parse_st_ex()?)),
-            _ => Err(ParseError::UnexpectedToken(
-                "Stmt".to_string(),
-                ctx.get_tok(),
-            )),
-        };
-        consume_next_tok!("Stmt".to_string(), ctx, TT::Semicolon);
-        ret
-    }
+}
