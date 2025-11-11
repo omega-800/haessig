@@ -29,9 +29,9 @@ pub enum TT {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Token {
+pub struct Token<'a> {
     pub token_type: TT,
-    pub value: Option<String>,
+    pub value: Option<&'a str>,
     pub row: usize,
     pub col: usize,
 }
@@ -55,7 +55,7 @@ const TOKSTR: [&str; 15] = [
     "Wahrheit ",
 ];
 
-impl Token {
+impl<'a> Token<'a> {
     pub fn from_char(ch: char, row: usize, col: &mut usize) -> Self {
         *col += 1;
         Self {
@@ -71,7 +71,7 @@ impl Token {
             value: None,
         }
     }
-    fn new(token_type: TT, value: Option<String>, row: usize, col: usize) -> Self {
+    fn new(token_type: TT, value: Option<&'a str>, row: usize, col: usize) -> Self {
         Self {
             token_type,
             row,
@@ -87,7 +87,7 @@ impl Token {
             value: None,
         }
     }
-    pub fn from_string(input: &mut str, row: usize, col: &mut usize) -> Self {
+    pub fn from_string(input: &'a str, row: usize, col: &mut usize) -> Self {
         for (i, t) in TOKSTR.iter().enumerate() {
             if input.starts_with(t) {
                 let tok =
@@ -100,7 +100,7 @@ impl Token {
         let mut try_find = |re: &str, ttype: TT| -> Option<Token> {
             if let Ok(re) = Regex::new(re) {
                 if let Some(m) = re.find(input) {
-                    let tok = Token::new(ttype, Some(m.as_str().to_owned()), row, *col);
+                    let tok = Token::new(ttype, Some(m.into()), row, *col);
                     *col += m.as_str().chars().count();
                     return Some(tok);
                 }
@@ -122,7 +122,7 @@ impl Token {
     }
 }
 
-pub type Tokens = Vec<Token>;
+pub type Tokens<'a> = Vec<Token<'a>>;
 
 fn display_tokens(v: &Tokens) -> String {
     format!(
@@ -142,14 +142,14 @@ fn display_tokens(v: &Tokens) -> String {
     )
 }
 
-pub struct Lexer {
-    input: String,
+pub struct Lexer<'a> {
+    input: &'a str,
     row: usize,
     col: usize,
 }
 
-impl Lexer {
-    pub fn new(input: String) -> Self {
+impl<'a> Lexer<'a> {
+    pub fn new(input: &'a str) -> Self {
         Self {
             input,
             row: 0,
@@ -157,15 +157,15 @@ impl Lexer {
         }
     }
 
-    pub fn lex(&mut self) -> Tokens {
-        let mut res: Vec<Token> = Vec::new();
+    pub fn lex(&mut self) -> Tokens<'a> {
+        let mut res: Vec<Token<'a>> = Vec::new();
         self.input.lines().for_each(|l| {
             while let Some(ch) = l.chars().nth(self.col) {
                 match ch {
                     '{' | '}' | ';' | ',' => res.push(Token::from_char(ch, self.row, &mut self.col)),
                     ' ' => self.col += 1,
                     _ => res.push(Token::from_string(
-                        &mut l.chars().skip(self.col).collect::<String>(),
+                        &l[self.col..],
                         self.row,
                         &mut self.col,
                     )),
