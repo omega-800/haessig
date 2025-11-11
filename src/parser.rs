@@ -145,8 +145,10 @@ impl Display for ParseError {
 
 macro_rules! expect_id_next {
     ( $t:expr, $self:ident ) => {{
-        $self.consume();
-        let id_tok = $self.cur_tok()?;
+        //$self.consume();
+        $self.pos += 1;
+        //let id_tok = $self.cur_tok()?;
+        let id_tok = $self.tokens.get($self.pos).ok_or(ParseError::NoTokensLeft)?;
         if id_tok.token_type != TT::Id {
             return Err(ParseError::ExpectedToken($t, TT::Id, $self.get_tok()));
         }
@@ -214,8 +216,8 @@ impl<'a> Parser<'a> {
         let body = self.parse_block()?;
 
         // FIXME: fight the borrow checker harder
-        // Ok(FunAss {id, body, ret})
-        Err(ParseError::NoTokensLeft)
+        Ok(FunAss {id, body, ret})
+        //Err(ParseError::NoTokensLeft)
     }
     pub fn parse_var_ass(&mut self) -> Result<VarAss<'a>, ParseError> {
         let id = expect_id_next!("VarAss".to_string(), self);
@@ -235,8 +237,8 @@ impl<'a> Parser<'a> {
             }
         }
         // FIXME: fight the borrow checker harder
-        // Ok(VarAss { id, value, pt })
-        Err(ParseError::NoTokensLeft)
+        Ok(VarAss { id, value, pt })
+        //Err(ParseError::NoTokensLeft)
     }
     pub fn parse_expr(&mut self) -> Result<Expr<'a>, ParseError> {
         match (self.cur_tok()?).token_type {
