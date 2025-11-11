@@ -145,8 +145,10 @@ impl Display for ParseError {
 
 macro_rules! expect_id_next {
     ( $t:expr, $self:ident ) => {{
+        // TODO: wrap my brain around why this doesn't work
         //$self.consume();
         $self.pos += 1;
+        // TODO: as well as this
         //let id_tok = $self.cur_tok()?;
         let id_tok = $self.tokens.get($self.pos).ok_or(ParseError::NoTokensLeft)?;
         if id_tok.token_type != TT::Id {
@@ -265,8 +267,8 @@ impl<'a> Parser<'a> {
             TT::Wahr => Ok(Prim::Bool(true)),
             TT::Falsch => Ok(Prim::Bool(false)),
             // FIXME: fight the borrow checker harder
-            //TT::Str => Ok(Prim::Str(tok.value.as_ref().map_or("", |v| v))),
-            //TT::Id => Ok(Prim::Id(tok.value.as_ref().map_or("", |v| v))),
+            // TT::Str => Ok(Prim::Str(tok.value.as_ref().map_or("", |v| v))),
+            // TT::Id => Ok(Prim::Id(tok.value.as_ref().map_or("", |v| v))),
             _ => Err(ParseError::ExpectedPrim("Prim".to_string(), self.get_tok())),
         }
     }
