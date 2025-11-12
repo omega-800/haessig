@@ -1,6 +1,7 @@
 use crate::interm::IntermRepr;
 
-fn generate_print(out: &str) -> String {
+#[allow(dead_code)]
+fn generate_print(_out: &str) -> String {
     "
 mov eax, 1                            ;; sys_write(               // Call the write(2) syscall
 mov edi, 1                            ;;     STDOUT_FILENO,       // Write to stdout
@@ -10,12 +11,14 @@ syscall                               ;; );
 ".to_string()
 }
 
+#[allow(dead_code)]
 pub struct Compiler<'a> {
     input: &'a IntermRepr<'a>,
     stack_size: u64,
     output: String,
 }
 
+#[allow(dead_code)]
 impl<'a> Compiler<'a> {
     pub fn new(input: &'a IntermRepr<'a>) -> Self {
         Self {

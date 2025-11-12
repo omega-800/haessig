@@ -293,7 +293,6 @@ impl<'a> Parseable<'a> for Block<'a> {
 impl<'a> Parseable<'a> for Prim<'a> {
     fn parse(tokens: &'a [Token<'a>], pos: &mut usize) -> Result<Self, ParseError<'a>> {
         let tok = tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?;
-        *pos+=1;
         match tok.token_type {
             TT::Num => Ok(Prim::R8(
                 tok.value

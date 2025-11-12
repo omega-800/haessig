@@ -19,7 +19,7 @@ G Lahn ich's
 
 ```
 dä x isch 5;
-funktion brüeder het zahl y, zahl z git zahl {
+funktion brüeder het Zahl y, Zahl z git Zahl {
     dä resultat isch 
         y mal x
             wenn z chlinner y suscht 

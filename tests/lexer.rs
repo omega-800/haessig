@@ -8,7 +8,6 @@ funktion test git Wahrheit {
     gib falsch;
 }
 "
-        .to_string(),
     )
     .lex();
     let exp = vec![

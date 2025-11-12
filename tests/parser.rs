@@ -1,68 +1,61 @@
-use haessig::{lexer::{Token, Tokens, TT}, parser::Parser};
+use haessig::{lexer::Lexer, parser::Parser};
 
 #[test]
 fn var_ass() {
-    let res = Parser::new(&vec![
-        (Token {
-            token_type: TT::Funktion,
-            value: None,
-            row: 1,
-            col: 0,
-        }),
-        (Token {
-            token_type: TT::Id,
-            value: Some("test".to_string()),
-            row: 1,
-            col: 9,
-        }),
-        (Token {
-            token_type: TT::Git,
-            value: None,
-            row: 1,
-            col: 14,
-        }),
-        (Token {
-            token_type: TT::TypWahrheit,
-            value: None,
-            row: 1,
-            col: 18,
-        }),
-        (Token {
-            token_type: TT::LBrace,
-            value: None,
-            row: 1,
-            col: 27,
-        }),
-        (Token {
-            token_type: TT::Id,
-            value: Some("gib".to_string()),
-            row: 2,
-            col: 4,
-        }),
-        (Token {
-            token_type: TT::Id,
-            value: Some("falsch".to_string()),
-            row: 2,
-            col: 8,
-        }),
-        (Token {
-            token_type: TT::Semicolon,
-            value: None,
-            row: 2,
-            col: 14,
-        }),
-        (Token {
-            token_type: TT::RBrace,
-            value: None,
-            row: 3,
-            col: 0,
-        }),
-        (Token {
-            token_type: TT::Semicolon,
-            value: None,
-            row: 3,
-            col: 1,
-        }),
-    ]).parse();
-    assert_eq!(res.is_ok(), true);
+    assert!(Parser::new(&Lexer::new("dä x isch 5;").lex())
+        .parse()
+        .is_ok());
+}
+
+#[test]
+fn var_ass_str() {
+    assert!(Parser::new(&Lexer::new("dä x isch \"5\";").lex())
+        .parse()
+        .is_ok());
+}
+
+#[test]
+fn var_ass_bool() {
+    assert!(Parser::new(&Lexer::new("dä x isch wahr;").lex())
+        .parse()
+        .is_ok());
+}
+
+#[test]
+fn block() {
+    assert!(Parser::new(&Lexer::new("{dä x isch 5;}").lex())
+        .parse()
+        .is_ok());
+}
+
+#[test]
+fn fun_ass() {
+    assert!(Parser::new(&Lexer::new("funktion f {};").lex())
+        .parse()
+        .is_ok());
+}
+
+#[test]
+fn fun_ass_with_ret() {
+    assert!(Parser::new(&Lexer::new("funktion f git Zahl {};").lex())
+        .parse()
+        .is_ok());
+}
+
+#[test]
+fn fun_ass_with_args() {
+    assert!(
+        Parser::new(&Lexer::new("funktion f het Zahl x, Zahl y {};").lex())
+            .parse()
+            .is_ok()
+    );
+}
+
+#[test]
+fn fun_ass_with_args_and_ret() {
+    assert!(
+        Parser::new(&Lexer::new("funktion f het Zahl x, Zahl y git Zahl {};").lex())
+            .parse()
+            .is_ok()
+    );
 }
