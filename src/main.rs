@@ -103,6 +103,7 @@ funktion chuchichäschtli {
     let toks = Lexer::new(&input).lex();
     write("tokens.txt", &format!("{:#?}", toks));
     //println!("TOKS:\n{}", toks);
+    //FIXME: lifetime of the ast shouldn't be tied to the lifetime of the parser
     let mut parser = Parser::new(&toks);
     let ast = parser.parse();
     //println!("AST:\n{:#?}", ast);
