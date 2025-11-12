@@ -2,6 +2,7 @@
 use regex::Regex;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[allow(dead_code)]
 pub enum TT {
     Funktion,
     Tuen,
@@ -124,6 +125,7 @@ impl<'a> Token<'a> {
 
 pub type Tokens<'a> = Vec<Token<'a>>;
 
+#[allow(dead_code)]
 fn display_tokens(v: &Tokens) -> String {
     format!(
         "[ {} ]",

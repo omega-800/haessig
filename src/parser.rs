@@ -41,6 +41,7 @@ pub struct Ret<'a> {
     pub expr: Expr<'a>,
 }
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum Prim<'a> {
     Bool(bool),
     Str(&'a str),
@@ -52,6 +53,7 @@ pub struct Block<'a> {
     pub stmts: Vec<Stmt<'a>>,
 }
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct VarAss<'a> {
     pub id: &'a str,
     pub value: Expr<'a>,
@@ -85,7 +87,6 @@ impl PrimType {
 #[derive(Debug, Clone)]
 pub enum ParseError<'a> {
     NoTokensLeft,
-    TokensLeft,
     UnexpectedToken(String, Token<'a>),
     ExpectedToken(String, TT, Token<'a>),
     ExpectedType(String, Token<'a>),
@@ -100,7 +101,6 @@ impl<'a> Display for ParseError<'a> {
         let pos = |tok: &Token| format!("row {} col {}", tok.row, tok.col);
         match self {
             ParseError::NoTokensLeft => write!(f, "{}: No tokens left", msg),
-            ParseError::TokensLeft => write!(f, "{}: Tokens couldn't be parsed", msg),
             ParseError::NotConvertible(t, from, to, token) => {
                 write!(
                     f,
@@ -293,6 +293,7 @@ impl<'a> Parseable<'a> for Block<'a> {
 impl<'a> Parseable<'a> for Prim<'a> {
     fn parse(tokens: &'a [Token<'a>], pos: &mut usize) -> Result<Self, ParseError<'a>> {
         let tok = tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?;
+        *pos+=1;
         match tok.token_type {
             TT::Num => Ok(Prim::R8(
                 tok.value

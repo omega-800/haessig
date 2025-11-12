@@ -1,4 +1,4 @@
-use haessig::lexer::{Lexer, Token, Tokens, TT};
+use haessig::lexer::{Lexer, Token,  TT};
 
 #[test]
 fn var_ass() {
@@ -19,7 +19,7 @@ funktion test git Wahrheit {
         }),
         (Token {
             token_type: TT::Id,
-            value: Some("test".to_string()),
+            value: Some("test"),
             row: 1,
             col: 9,
         }),
@@ -42,14 +42,14 @@ funktion test git Wahrheit {
             col: 27,
         }),
         (Token {
-            token_type: TT::Id,
-            value: Some("gib".to_string()),
+            token_type: TT::Gib,
+            value: None,
             row: 2,
             col: 4,
         }),
         (Token {
             token_type: TT::Id,
-            value: Some("falsch".to_string()),
+            value: Some("falsch"),
             row: 2,
             col: 8,
         }),
