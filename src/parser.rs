@@ -60,10 +60,16 @@ pub struct VarAss<'a> {
     pub pt: Option<PrimType>,
 }
 #[derive(Debug, Clone)]
+pub struct Arg<'a> {
+    pub id: &'a str,
+    pub pt: PrimType,
+}
+#[derive(Debug, Clone)]
 pub struct FunAss<'a> {
     pub id: &'a str,
     pub body: Block<'a>,
     pub ret: Option<PrimType>,
+    pub args: Vec<Arg<'a>>,
 }
 #[derive(Debug, Clone)]
 pub struct Call<'a> {
@@ -97,61 +103,30 @@ pub enum ParseError<'a> {
 
 impl<'a> Display for ParseError<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let msg = "Your code is bonkers";
-        let pos = |tok: &Token| format!("row {} col {}", tok.row, tok.col);
+        let fm = |n, t: &Token<'a>| {
+            format!(
+                "Your code is bonkers at row {} col {} parsing {}. Got type {:?} with value {:?}, ",
+                t.row, t.col, n, t.token_type, t.value
+            )
+        };
         match self {
-            ParseError::NoTokensLeft => write!(f, "{}: No tokens left", msg),
-            ParseError::NotConvertible(t, from, to, token) => {
-                write!(
-                    f,
-                    "{}: Couldn't convert value of token from {:?} to {} at {} parsing {}",
-                    msg,
-                    from,
-                    to,
-                    pos(token),
-                    t
-                )
+            ParseError::NoTokensLeft => write!(f, "Your code is bonkers. No tokens left"),
+            ParseError::UnexpectedToken(n, token) => write!(f, "{}unexpected token", fm(n, token)),
+            ParseError::ExpectedToken(n, tt, token) => {
+                write!(f, "{}expected token {:?}", fm(n, token), tt)
             }
-            ParseError::UnexpectedToken(t, token) => {
-                write!(
-                    f,
-                    "{}: Unexpected token at {} parsing {}",
-                    msg,
-                    pos(token),
-                    t
-                )
+            ParseError::ExpectedType(n, token) => write!(f, "{}expected type", fm(n, token)),
+            ParseError::ExpectedPrim(n, token) => write!(f, "{}expected primitive", fm(n, token)),
+            ParseError::MissingValue(n, tt, token) => {
+                write!(f, "{}expected value for {:?}", fm(n, token), tt)
             }
-            ParseError::ExpectedToken(t, tt, token) => write!(
+            ParseError::NotConvertible(n, from, to, token) => write!(
                 f,
-                "{}: Expected token {:?} at {}, got {:?} parsing {}",
-                msg,
-                tt,
-                pos(token),
-                token.token_type,
-                t
+                "{}couldn't convert value from {:?} to {}",
+                fm(n, token),
+                from,
+                to
             ),
-            ParseError::ExpectedType(t, token) => {
-                write!(f, "{}: Expected type at {} parsing {}", msg, pos(token), t)
-            }
-            ParseError::ExpectedPrim(t, token) => {
-                write!(
-                    f,
-                    "{}: Expected primitive at {} parsing {}",
-                    msg,
-                    pos(token),
-                    t
-                )
-            }
-            ParseError::MissingValue(t, tt, token) => {
-                write!(
-                    f,
-                    "{}: Expected value for {:?} at {} parsing {}",
-                    msg,
-                    tt,
-                    pos(token),
-                    t
-                )
-            }
         }
     }
 }
@@ -227,7 +202,30 @@ impl<'a> Parseable<'a> for FunAss<'a> {
     fn parse(tokens: &'a [Token<'a>], pos: &mut usize) -> Result<Self, ParseError<'a>> {
         *pos += 1;
         let id = expect_id_next!("FunAss".to_string(), tokens, pos);
-        //TODO: args
+
+        let mut args = vec![];
+        let het_tok = tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?;
+        if het_tok.token_type == TT::Het {
+            *pos += 1;
+            loop {
+                let type_tok = tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?;
+                if let Some(pt) = PrimType::from_tt(type_tok.token_type) {
+                    *pos += 1;
+                    let arg_id = expect_id_next!("FunAss".to_string(), tokens, pos);
+                    args.push(Arg { pt, id: arg_id });
+                } else {
+                    return Err(ParseError::ExpectedType(
+                        "FunAss".to_string(),
+                        tokens[*pos].clone(),
+                    ));
+                }
+                if (tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?).token_type != TT::Comma {
+                    break;
+                }
+                *pos += 1;
+            }
+        }
+
         let mut ret = None;
         let git_tok = tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?;
         if git_tok.token_type == TT::Git {
@@ -246,7 +244,12 @@ impl<'a> Parseable<'a> for FunAss<'a> {
         }
         let body = Block::parse(tokens, pos)?;
 
-        Ok(FunAss { id, body, ret })
+        Ok(FunAss {
+            id,
+            body,
+            ret,
+            args,
+        })
     }
 }
 
@@ -293,7 +296,7 @@ impl<'a> Parseable<'a> for Block<'a> {
 impl<'a> Parseable<'a> for Prim<'a> {
     fn parse(tokens: &'a [Token<'a>], pos: &mut usize) -> Result<Self, ParseError<'a>> {
         let tok = tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?;
-        *pos+=1;
+        *pos += 1;
         match tok.token_type {
             TT::Num => Ok(Prim::R8(
                 tok.value

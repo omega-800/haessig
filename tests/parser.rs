@@ -23,7 +23,7 @@ fn var_ass_bool() {
 
 #[test]
 fn block() {
-    assert!(Parser::new(&Lexer::new("{dä x isch 5;}").lex())
+    assert!(Parser::new(&Lexer::new("{dä x isch 5;};").lex())
         .parse()
         .is_ok());
 }
@@ -37,7 +37,7 @@ fn fun_ass() {
 
 #[test]
 fn fun_ass_with_ret() {
-    assert!(Parser::new(&Lexer::new("funktion f git Zahl {};").lex())
+    assert!(Parser::new(&Lexer::new("funktion f git N8 {};").lex())
         .parse()
         .is_ok());
 }
@@ -45,7 +45,7 @@ fn fun_ass_with_ret() {
 #[test]
 fn fun_ass_with_args() {
     assert!(
-        Parser::new(&Lexer::new("funktion f het Zahl x, Zahl y {};").lex())
+        Parser::new(&Lexer::new("funktion f het N8 x, N8 y {};").lex())
             .parse()
             .is_ok()
     );
@@ -54,7 +54,7 @@ fn fun_ass_with_args() {
 #[test]
 fn fun_ass_with_args_and_ret() {
     assert!(
-        Parser::new(&Lexer::new("funktion f het Zahl x, Zahl y git Zahl {};").lex())
+        Parser::new(&Lexer::new("funktion f het N8 x, N8 y git N8 {};").lex())
             .parse()
             .is_ok()
     );

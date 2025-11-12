@@ -1,4 +1,3 @@
-
 use regex::Regex;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -9,6 +8,7 @@ pub enum TT {
     Mit,
     Dä,
     Isch,
+    Het,
     Git,
     Gib,
     Als,
@@ -25,7 +25,7 @@ pub enum TT {
     LBrace,    // {
     RBrace,    // }
     Semicolon, // ;
-    Comma, // ,
+    Comma,     // ,
     Invalid,   // invalid
 }
 
@@ -38,12 +38,13 @@ pub struct Token<'a> {
 }
 
 // TODO: use separators instead of space
-const TOKSTR: [&str; 15] = [
+const TOKSTR: [&str; 16] = [
     "funktion ",
     "tuen ",
     "mit ",
     "dä ",
     "isch ",
+    "het ",
     "git ",
     "gib ",
     "als ",
@@ -52,7 +53,7 @@ const TOKSTR: [&str; 15] = [
     "R8 ",
     "N8 ",
     "Z8 ",
-    "Zahl ",
+    "Zeiche ",
     "Wahrheit ",
 ];
 
@@ -80,7 +81,7 @@ impl<'a> Token<'a> {
             value,
         }
     }
-    fn new_prim(token_type: TT, row: usize, col: usize) -> Self {
+    fn new_builtin(token_type: TT, row: usize, col: usize) -> Self {
         Self {
             token_type,
             row,
@@ -91,8 +92,11 @@ impl<'a> Token<'a> {
     pub fn from_string(input: &'a str, row: usize, col: &mut usize) -> Self {
         for (i, t) in TOKSTR.iter().enumerate() {
             if input.starts_with(t) {
-                let tok =
-                    Token::new_prim(unsafe { std::mem::transmute::<u8, TT>(i as u8) }, row, *col);
+                let tok = Token::new_builtin(
+                    unsafe { std::mem::transmute::<u8, TT>(i as u8) },
+                    row,
+                    *col,
+                );
                 *col += t.chars().count();
                 return tok;
             }
@@ -119,7 +123,7 @@ impl<'a> Token<'a> {
             return tok;
         }
         *col += input.chars().take_while(|c| !c.is_whitespace()).count() + 1;
-        Token::new_prim(TT::Invalid, row, *col)
+        Token::new_builtin(TT::Invalid, row, *col)
     }
 }
 
@@ -134,9 +138,7 @@ fn display_tokens(v: &Tokens) -> String {
                 format!(
                     "{:?}{}",
                     t.token_type,
-                    t.value
-                        .clone()
-                        .map_or("".to_string(), |v| format!(" ({})", v))
+                    t.value.map_or("".to_string(), |v| format!(" ({})", v))
                 )
             })
             .collect::<Vec<String>>()
@@ -164,13 +166,15 @@ impl<'a> Lexer<'a> {
         self.input.lines().for_each(|l| {
             while let Some(ch) = l.chars().nth(self.col) {
                 match ch {
-                    '{' | '}' | ';' | ',' => res.push(Token::from_char(ch, self.row, &mut self.col)),
-                    ' ' => self.col += 1,
-                    _ => res.push(Token::from_string(
-                        &l[self.col..],
-                        self.row,
-                        &mut self.col,
-                    )),
+                    '{' | '}' | ';' | ',' => {
+                        res.push(Token::from_char(ch, self.row, &mut self.col))
+                    }
+                    _ if ch.is_whitespace() => self.col += 1,
+                    _ => {
+                        let mut l_iter = l.chars();
+                        (&mut l_iter).take(self.col).count();
+                        res.push(Token::from_string(l_iter.as_str(), self.row, &mut self.col))
+                    }
                 }
             }
             self.row += 1;

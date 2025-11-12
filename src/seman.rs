@@ -40,12 +40,17 @@ impl<'a> Analyzable<'a> for Stmt<'a> {
     fn analyze(&'a self, ctx: &mut SemanticAnalyzer<'a>) -> Result<(), SemAnError> {
         match self {
             Stmt::FunAss(fun_ass) => {
-                        ctx.add_symbol(fun_ass.id, &fun_ass.ret);
-                        fun_ass.body.analyze(ctx)?;
-                    }
+                ctx.add_symbol(fun_ass.id, &fun_ass.ret);
+                /* FIXME:
+                  for arg in fun_ass.args.iter() {
+                      ctx.add_symbol(arg.id, &Some(arg.pt));
+                  }
+                */
+                fun_ass.body.analyze(ctx)?;
+            }
             Stmt::VarAss(var_ass) => var_ass.analyze(ctx)?,
             Stmt::StEx(st_ex) => st_ex.analyze(ctx)?,
-            Stmt::Ret(ret) => ret.expr.analyze(ctx)?
+            Stmt::Ret(ret) => ret.expr.analyze(ctx)?,
         }
         Ok(())
     }
