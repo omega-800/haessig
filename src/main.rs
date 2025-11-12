@@ -100,10 +100,11 @@ funktion chuchichäschtli {
     }
     //println!("INPUT:\n{input}");
     write("input.hä", &input);
-    let toks = Lexer::new(input).lex();
+    let toks = Lexer::new(&input).lex();
     write("tokens.txt", &format!("{:#?}", toks));
     //println!("TOKS:\n{}", toks);
-    let ast = Parser::new(&toks).parse();
+    let mut parser = Parser::new(&toks);
+    let ast = parser.parse();
     //println!("AST:\n{:#?}", ast);
     match ast {
         Ok(ast) => {

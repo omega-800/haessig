@@ -178,7 +178,7 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a Tokens) -> Self {
+    pub fn new(tokens: &'a Tokens<'a>) -> Self {
         Self {
             tokens, /*, pos: 0 */
         }
@@ -186,36 +186,36 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<Program<'a>, ParseError> {
         let mut ast = vec![];
         let mut pos: usize = 0;
-        while let Ok(stmt) = parse_stmt(self.tokens, &mut pos) {
-            ast.push(stmt);
-        }
-        if pos < self.tokens.len() {
-            return Err(ParseError::TokensLeft);
-        }
         /*
-                while self.pos < self.tokens.len() {
-                    let stmt = self.parse_stmt()?;
+                while let Ok(stmt) = parse_stmt(self.tokens, &mut pos) {
                     ast.push(stmt);
                 }
+                if pos < self.tokens.len() {
+                    return Err(ParseError::TokensLeft);
+                }
         */
+                while pos < self.tokens.len() {
+                    let stmt = parse_stmt(self.tokens, &mut pos)?;
+                    ast.push(stmt);
+                }
         Ok(ast)
     }
     /*
     pub fn consume(&mut self) {
         self.pos += 1;
     }
-    */
     pub fn cur_tok(&self, pos: usize) -> Result<&'a Token<'a>, ParseError> {
         self.tokens.get(pos).ok_or(ParseError::NoTokensLeft)
     }
     pub fn get_tok(&self, pos: usize) -> Token<'a> {
         self.tokens[pos].clone()
     }
+    */
 }
 
 pub fn parse_stmt<'a>(
     tokens: &'a [Token<'a>],
-    pos: &'a mut usize,
+    pos: &mut usize,
 ) -> Result<Stmt<'a>, ParseError<'a>> {
     let tok = tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?;
     let ret = match tok.token_type {
@@ -225,7 +225,7 @@ pub fn parse_stmt<'a>(
         TT::Tuen | TT::LBrace => Ok(Stmt::StEx(parse_st_ex(tokens, pos)?)),
         _ => Err(ParseError::UnexpectedToken(
             "Stmt".to_string(),
-            tokens[*pos].clone(), 
+            tokens[*pos].clone(),
         )),
     };
 
@@ -234,7 +234,7 @@ pub fn parse_stmt<'a>(
 }
 pub fn parse_fun_ass<'a>(
     tokens: &'a [Token<'a>],
-    pos: &'a mut usize,
+    pos: &mut usize,
 ) -> Result<FunAss<'a>, ParseError<'a>> {
     let id = expect_id_next!("FunAss".to_string(), tokens, pos);
     *pos += 1;
@@ -261,7 +261,7 @@ pub fn parse_fun_ass<'a>(
 }
 pub fn parse_var_ass<'a>(
     tokens: &'a [Token<'a>],
-    pos: &'a mut usize,
+    pos: &mut usize,
 ) -> Result<VarAss<'a>, ParseError<'a>> {
     let id = expect_id_next!("VarAss".to_string(), tokens, pos);
     *pos += 1;
@@ -283,7 +283,7 @@ pub fn parse_var_ass<'a>(
 }
 pub fn parse_expr<'a>(
     tokens: &'a [Token<'a>],
-    pos: &'a mut usize,
+    pos: &mut usize,
 ) -> Result<Expr<'a>, ParseError<'a>> {
     match (tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?).token_type {
         TT::Tuen | TT::LBrace => Ok(Expr::StEx(parse_st_ex(tokens, pos)?)),
@@ -292,7 +292,7 @@ pub fn parse_expr<'a>(
 }
 pub fn parse_block<'a>(
     tokens: &'a [Token<'a>],
-    pos: &'a mut usize,
+    pos: &mut usize,
 ) -> Result<Block<'a>, ParseError<'a>> {
     *pos += 1;
     let mut stmts = vec![];
@@ -304,7 +304,7 @@ pub fn parse_block<'a>(
 }
 pub fn parse_prim<'a>(
     tokens: &'a [Token<'a>],
-    pos: &'a mut usize,
+    pos: &mut usize,
 ) -> Result<Prim<'a>, ParseError<'a>> {
     let tok = tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?;
     match tok.token_type {
@@ -325,7 +325,7 @@ pub fn parse_prim<'a>(
 }
 pub fn parse_call<'a>(
     tokens: &'a [Token<'a>],
-    pos: &'a mut usize,
+    pos: &mut usize,
 ) -> Result<Call<'a>, ParseError<'a>> {
     let id = expect_id_next!("Call".to_string(), tokens, pos);
     *pos += 1;
@@ -348,7 +348,7 @@ pub fn parse_call<'a>(
 }
 pub fn parse_ret<'a>(
     tokens: &'a [Token<'a>],
-    pos: &'a mut usize,
+    pos: &mut usize,
 ) -> Result<Ret<'a>, ParseError<'a>> {
     *pos += 1;
     Ok(Ret {
@@ -357,7 +357,7 @@ pub fn parse_ret<'a>(
 }
 pub fn parse_st_ex<'a>(
     tokens: &'a [Token<'a>],
-    pos: &'a mut usize,
+    pos: &mut usize,
 ) -> Result<StEx<'a>, ParseError<'a>> {
     match (tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?).token_type {
         TT::Tuen => Ok(StEx::Call(parse_call(tokens, pos)?)),
