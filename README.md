@@ -1,8 +1,8 @@
 # HÄSSIG
 
-A swiss german (Zurich dialect) programming language. Acronym stands for:    
+A swiss german (Zurich dialect) programming language. Recursive acronym stands for:    
          
-H Hässig, Rekursivi     
+H Hässig:
 Ä Äkronym    
 S Sind    
 S Schwierig    
@@ -19,7 +19,7 @@ G Lahn ich's
 
 ```
 dä x isch 5;
-funktion brüeder het Zahl y, Zahl z git Zahl {
+funktion brüeder het N8 y, N8 z git N8 {
     dä resultat isch 
         y mal x
             wenn z chlinner y suscht 
@@ -38,8 +38,8 @@ schrei mit "s resultat isch: " plus wasauimmer;
 <Program>       ::= <Stmt>+
 <Expr>          ::= (<StEx> | <Prim>)
 <Prim>          ::= (<Str> | <Number> | <Id>)
-<Stmt>          ::= (<FunAss> | <VarAss> | <StEx> | <Ret>)) ';'
-<FunAss>        ::= 'funktion' <Id> ('git' <Type>)? <Block>
+<Stmt>          ::= (<FunAss> | <VarAss> | <StEx> | <Ret>) ';'
+<FunAss>        ::= 'funktion' <Id> ('mit' (<Type> <Id> ',')* <Type> <Id>)? ('git' <Type>)? <Block>
 <VarAss>        ::= 'dä' <Id> 'isch' <Expr> ('als' <Type>)?
 <StEx>          ::= (<Call> | <Block>)
 <Call>          ::= 'tuen' <Id> ('mit' (<Expr> ',')* <Expr>)?
