@@ -76,9 +76,11 @@ fn write(filename: &str, content: &str) {
 
 fn dothething() {
     let input = "
-dä x isch 5;
+dä x isch 5 plus 5 minus 7;
 funktion test het N8 x, N8 y git Wahrheit {
-    gib falsch ;
+    tuen schreie mit y;
+    dä y isch 9;
+    gib falsch;
 };
 "
     /*"

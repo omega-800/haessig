@@ -3,6 +3,20 @@ use regex::Regex;
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[allow(dead_code)]
 pub enum TT {
+    Gliich,
+    GrösserGliich,
+    Grösser,
+    ChlinnerGliich,
+    Chlinner,
+    Ungliich,
+    Und,
+    Oder,
+    Rescht,
+    Hoch,
+    Mal,
+    Durch,
+    Plus,
+    Minus,
     Funktion,
     Tuen,
     Mit,
@@ -38,24 +52,40 @@ pub struct Token<'a> {
 }
 
 // TODO: use separators instead of space
-const TOKSTR: [&str; 16] = [
-    "funktion ",
-    "tuen ",
-    "mit ",
-    "dä ",
-    "isch ",
-    "het ",
-    "git ",
-    "gib ",
-    "als ",
-    "wahr ",
-    "falsch ",
-    "R8 ",
-    "N8 ",
-    "Z8 ",
-    "Zeiche ",
-    "Wahrheit ",
+const TOKSTR: [&str; 30] = [
+    "gliich",
+    "grösser gliich",
+    "grösser",
+    "chlinner gliich",
+    "chlinner",
+    "ungliich",
+    "und",
+    "oder",
+    "rescht",
+    "hoch",
+    "mal",
+    "durch",
+    "plus",
+    "minus",
+    "funktion",
+    "tuen",
+    "mit",
+    "dä",
+    "isch",
+    "het",
+    "git",
+    "gib",
+    "als",
+    "wahr",
+    "falsch",
+    "R8",
+    "N8",
+    "Z8",
+    "Zeiche",
+    "Wahrheit",
 ];
+
+const SEP: [char; 4] = [';', ',', '{', '}'];
 
 impl<'a> Token<'a> {
     pub fn from_char(ch: char, row: usize, col: &mut usize) -> Self {
@@ -91,14 +121,16 @@ impl<'a> Token<'a> {
     }
     pub fn from_string(input: &'a str, row: usize, col: &mut usize) -> Self {
         for (i, t) in TOKSTR.iter().enumerate() {
-            if input.starts_with(t) {
-                let tok = Token::new_builtin(
-                    unsafe { std::mem::transmute::<u8, TT>(i as u8) },
-                    row,
-                    *col,
-                );
-                *col += t.chars().count();
-                return tok;
+            if let Some(next_ch) = input.chars().nth(t.chars().count()) {
+                if input.starts_with(t) && (SEP.contains(&next_ch) || next_ch.is_whitespace()) {
+                    let tok = Token::new_builtin(
+                        unsafe { std::mem::transmute::<u8, TT>(i as u8) },
+                        row,
+                        *col,
+                    );
+                    *col += t.chars().count();
+                    return tok;
+                }
             }
         }
 
@@ -166,7 +198,7 @@ impl<'a> Lexer<'a> {
         self.input.lines().for_each(|l| {
             while let Some(ch) = l.chars().nth(self.col) {
                 match ch {
-                    '{' | '}' | ';' | ',' => {
+                    _ if SEP.contains(&ch) => {
                         res.push(Token::from_char(ch, self.row, &mut self.col))
                     }
                     _ if ch.is_whitespace() => self.col += 1,

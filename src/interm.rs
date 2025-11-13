@@ -13,12 +13,16 @@ enum Op {
 }
 
 #[allow(dead_code)]
-type Instructions = Vec<(Op, u8, u8, u8)>;
+enum Instruction<'a> {
+    Bin(Op, &'a str, &'a str),
+    Jmp(&'a str),
+}
+type Instructions<'a> = Vec<Instruction<'a>>;
 
 #[allow(dead_code)]
 pub struct IntermRepr<'a> {
-    main: Instructions,
-    labels: HashMap<&'a str, Instructions>
+    main: Instructions<'a>,
+    labels: HashMap<&'a str, Instructions<'a>>
 }
 
 #[allow(dead_code)]

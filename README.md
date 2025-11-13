@@ -36,7 +36,7 @@ schrei mit "s resultat isch: " plus wasauimmer;
 
 ```EBNF
 <Program>       ::= <Stmt>+
-<Expr>          ::= (<StEx> | <Prim>)
+<Expr>          ::= (<StEx> | <Prim> | <Bin>)
 <Prim>          ::= (<Str> | <Number> | <Id>)
 <Stmt>          ::= (<FunAss> | <VarAss> | <StEx> | <Ret>) ';'
 <FunAss>        ::= 'funktion' <Id> ('mit' (<Type> <Id> ',')* <Type> <Id>)? ('git' <Type>)? <Block>
@@ -46,6 +46,7 @@ schrei mit "s resultat isch: " plus wasauimmer;
 <Block>         ::= '{' <Stmt>+ '}'
 <Ret>           ::= 'gib' <Expr>
 <Type>          ::= ('N8' | 'Z8' | 'R8' | 'Zeiche' | 'Wahrheit')
+<Bin>           ::= (<StEx> | <Prim>) ('rescht'|'hoch'|'mal'|'durch'|'plus'|'minus'|'gliich'|'grösser'|'grösser gliich'|'chlinner'|'chlinner gliich'|'ungliich'|'und'|'oder') <Expr>
 ```
 
 ### EBNF

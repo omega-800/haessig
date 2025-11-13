@@ -19,6 +19,65 @@ impl Display for PrimType {
     }
 }
 
+impl PrimType {
+    fn from_tt(value: TT) -> Option<Self> {
+        match value {
+            TT::TypZeiche => Some(PrimType::String),
+            TT::TypR8 => Some(PrimType::R8),
+            TT::TypN8 => Some(PrimType::N8),
+            TT::TypZ8 => Some(PrimType::Z8),
+            TT::TypWahrheit => Some(PrimType::Boolean),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum BinOperator {
+    Gliich,
+    GrösserGliich,
+    Grösser,
+    ChlinnerGliich,
+    Chlinner,
+    Ungliich,
+    Und,
+    Oder,
+    Rescht,
+    Hoch,
+    Mal,
+    Durch,
+    Plus,
+    Minus,
+}
+
+impl BinOperator {
+    fn from_tt(value: TT) -> Option<Self> {
+        match value {
+            TT::Gliich => Some(BinOperator::Gliich),
+            TT::GrösserGliich => Some(BinOperator::GrösserGliich),
+            TT::Grösser => Some(BinOperator::Grösser),
+            TT::ChlinnerGliich => Some(BinOperator::ChlinnerGliich),
+            TT::Chlinner => Some(BinOperator::Chlinner),
+            TT::Ungliich => Some(BinOperator::Ungliich),
+            TT::Und => Some(BinOperator::Und),
+            TT::Oder => Some(BinOperator::Oder),
+            TT::Rescht => Some(BinOperator::Rescht),
+            TT::Hoch => Some(BinOperator::Hoch),
+            TT::Mal => Some(BinOperator::Mal),
+            TT::Durch => Some(BinOperator::Durch),
+            TT::Plus => Some(BinOperator::Plus),
+            TT::Minus => Some(BinOperator::Minus),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Bin<'a> {
+    pub lhs: Box<Expr<'a>>,
+    pub rhs: Box<Expr<'a>>,
+    pub op: BinOperator,
+}
 #[derive(Debug, Clone)]
 pub enum StEx<'a> {
     Call(Call<'a>),
@@ -35,6 +94,7 @@ pub enum Stmt<'a> {
 pub enum Expr<'a> {
     StEx(StEx<'a>),
     Prim(Prim<'a>),
+    Bin(Bin<'a>),
 }
 #[derive(Debug, Clone)]
 pub struct Ret<'a> {
@@ -77,24 +137,12 @@ pub struct Call<'a> {
     pub args: Vec<Expr<'a>>,
 }
 
-impl PrimType {
-    fn from_tt(value: TT) -> Option<Self> {
-        match value {
-            TT::TypZeiche => Some(PrimType::String),
-            TT::TypR8 => Some(PrimType::R8),
-            TT::TypN8 => Some(PrimType::N8),
-            TT::TypZ8 => Some(PrimType::Z8),
-            TT::TypWahrheit => Some(PrimType::Boolean),
-            _ => None,
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum ParseError<'a> {
     NoTokensLeft,
     UnexpectedToken(String, Token<'a>),
     ExpectedToken(String, TT, Token<'a>),
+    ExpectedOperator(String, Token<'a>),
     ExpectedType(String, Token<'a>),
     ExpectedPrim(String, Token<'a>),
     MissingValue(String, TT, Token<'a>),
@@ -105,7 +153,7 @@ impl<'a> Display for ParseError<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let fm = |n, t: &Token<'a>| {
             format!(
-                "Your code is bonkers at row {} col {} parsing {}. Got type {:?} with value {:?}, ",
+                "Your code is bonkers at row {} col {} parsing {} :) Got type {:?} with value {:?}, ",
                 t.row, t.col, n, t.token_type, t.value
             )
         };
@@ -116,6 +164,9 @@ impl<'a> Display for ParseError<'a> {
                 write!(f, "{}expected token {:?}", fm(n, token), tt)
             }
             ParseError::ExpectedType(n, token) => write!(f, "{}expected type", fm(n, token)),
+            ParseError::ExpectedOperator(n, token) => {
+                write!(f, "{}expected operator", fm(n, token))
+            }
             ParseError::ExpectedPrim(n, token) => write!(f, "{}expected primitive", fm(n, token)),
             ParseError::MissingValue(n, tt, token) => {
                 write!(f, "{}expected value for {:?}", fm(n, token), tt)
@@ -274,11 +325,39 @@ impl<'a> Parseable<'a> for VarAss<'a> {
         Ok(VarAss { id, value, pt })
     }
 }
+impl<'a> Parseable<'a> for Bin<'a> {
+    fn parse(tokens: &'a [Token<'a>], pos: &mut usize) -> Result<Self, ParseError<'a>> {
+        //TODO: operator precedence
+        let lhs = Box::new(
+            match (tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?).token_type {
+                TT::Tuen | TT::LBrace => Expr::StEx(StEx::parse(tokens, pos)?),
+                _ => Expr::Prim(Prim::parse(tokens, pos)?),
+            },
+        );
+        let op = BinOperator::from_tt(tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?.token_type)
+            .ok_or(ParseError::ExpectedOperator(
+                "Bin".to_string(),
+                tokens[*pos].clone(),
+            ))?;
+        *pos += 1;
+        let rhs = Box::new(Expr::parse(tokens, pos)?);
+        Ok(Self { lhs, rhs, op })
+    }
+}
 impl<'a> Parseable<'a> for Expr<'a> {
     fn parse(tokens: &'a [Token<'a>], pos: &mut usize) -> Result<Self, ParseError<'a>> {
+        //FIXME: wonky
+        let prev = *pos;
         match (tokens.get(*pos).ok_or(ParseError::NoTokensLeft)?).token_type {
             TT::Tuen | TT::LBrace => Ok(Expr::StEx(StEx::parse(tokens, pos)?)),
-            _ => Ok(Expr::Prim(Prim::parse(tokens, pos)?)),
+            _ if Bin::parse(tokens, pos).is_ok() => {
+                *pos = prev;
+                Ok(Expr::Bin(Bin::parse(tokens, pos)?))
+            }
+            _ => {
+                *pos = prev;
+                Ok(Expr::Prim(Prim::parse(tokens, pos)?))
+            }
         }
     }
 }

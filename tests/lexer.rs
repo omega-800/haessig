@@ -48,8 +48,8 @@ funktion test git Wahrheit {
             col: 4,
         }),
         (Token {
-            token_type: TT::Id,
-            value: Some("falsch"),
+            token_type: TT::Falsch,
+            value: None,
             row: 2,
             col: 8,
         }),
