@@ -1,6 +1,23 @@
 use std::{collections::HashMap, fmt::Display};
 
-use crate::parser::{Bin, Block, Call, Expr, FunAss, Prim, PrimType, Program, StEx, Stmt, VarAss};
+use crate::parser::{
+    Bin, BinOperator, Block, Call, Expr, FunAss, Prim, PrimType, Program, StEx, Stmt, VarAss,
+};
+
+// TODO: check
+// [ ] arg types match fn definition
+// [ ] arg count matches fn definition
+// [ ] return type matches fn definition
+// [ ] value type matches variable type on assign
+// [ ] if/while boolean predicate
+// [x] no multiple declarations with same id
+// [ ] no id is reserved keyword
+// [ ] only one main method
+// [ ] bin/un operators with correct types
+// [ ] uninitialized vars can't be accessed
+// [ ] division by zero
+// [ ] null-dereferencing
+// [ ] array index out of bounds
 
 const BUILTINS: [&str; 2] = ["schreie", "verlange"];
 
@@ -15,7 +32,7 @@ pub enum SemAnError<'a> {
     */
     TokenNotDefined(&'a str),
     FunctionNotDefined(&'a str),
-    SameFunctionArgs(&'a str,&'a str),
+    SameFunctionArgs(&'a str, &'a str),
     ArgNotDefined(&'a str, &'a str),
     AssignTokenNotDefined(&'a str, &'a str),
 }
@@ -30,8 +47,10 @@ impl<'a> Display for SemAnError<'a> {
                 SemAnError::AssignTokenNotDefined(id, ass) =>
                     format!("Token `{}` not defined when assigning to `{}`", id, ass),
                 SemAnError::FunctionNotDefined(id) => format!("Function `{}` not defined", id),
-                SemAnError::SameFunctionArgs(id,fun) =>
-                    format!("Duplicate id's `{}` passed as function args to `{}`", id,fun),
+                SemAnError::SameFunctionArgs(id, fun) => format!(
+                    "Duplicate id's `{}` passed as function args to `{}`",
+                    id, fun
+                ),
                 SemAnError::ArgNotDefined(id, fun) =>
                     format!("Argument `{}` for function `{}` not defined", id, fun),
             }
@@ -47,10 +66,10 @@ impl<'a> Analyzable<'a> for FunAss<'a> {
     fn analyze(&'a self, ctx: &mut SemanticAnalyzer<'a>) -> Result<(), SemAnError<'a>> {
         ctx.add_symbol(self.id, self.ret.as_ref());
         for (i, x) in self.args.iter().enumerate() {
-            for y in self.args.iter().skip(i+1) {
+            for y in self.args.iter().skip(i + 1) {
                 if x.id == y.id {
                     println!("{} {} {}", x.id, y.id, i);
-                    return Err(SemAnError::SameFunctionArgs(x.id,self.id));
+                    return Err(SemAnError::SameFunctionArgs(x.id, self.id));
                 }
             }
         }
@@ -142,6 +161,26 @@ impl<'a> Analyzable<'a> for Bin<'a> {
         //TODO: check type and operator
         self.lhs.analyze(ctx)?;
         self.rhs.analyze(ctx)?;
+        /*
+        match self.op {
+            // Eq
+            BinOperator::Gliich | BinOperator::Ungliich => todo!(),
+            // Cmp
+            BinOperator::GrösserGliich
+            | BinOperator::Grösser
+            | BinOperator::ChlinnerGliich
+            | BinOperator::Chlinner => todo!(),
+            // Bool
+            BinOperator::Und | BinOperator::Oder => todo!(),
+            // Num
+            BinOperator::Rescht
+            | BinOperator::Hoch
+            | BinOperator::Mal
+            | BinOperator::Durch
+            | BinOperator::Plus
+            | BinOperator::Minus => todo!(),
+        };
+*/
         Ok(())
     }
 }

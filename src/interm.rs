@@ -4,19 +4,36 @@ use crate::parser::{Program};
 
 
 #[allow(dead_code)]
-enum Op {
+enum BinOp {
     Add, 
     Sub, 
     Div,
     Mul,
+    Cmp,
     Mod
+}
+#[allow(dead_code)]
+enum JOp {
+    Jmp, 
+    Jne, 
+    Jle, 
+    Jlt, 
+    Jge, 
+    Jgt, 
 }
 
 #[allow(dead_code)]
 enum Instruction<'a> {
-    Bin(Op, &'a str, &'a str),
-    Jmp(&'a str),
+    Bin(BinOp, &'a str, &'a str),
+    Jmp(JOp, &'a str),
+    Param(&'a str),
+    Call(&'a str,&'a str),
+    Return(&'a str),
+    Pop(&'a str),
+    Ass(&'a str,&'a str),
 }
+
+
 type Instructions<'a> = Vec<Instruction<'a>>;
 
 #[allow(dead_code)]
