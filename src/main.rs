@@ -115,23 +115,24 @@ funktion chuchichäschtli {
             write("ast.txt", &format!("{:#?}", ast));
             match SemanticAnalyzer::new(&ast).analyze() {
                 Ok(_) => {
-                    //let ir = IRGen::new(&ast).generate();
-                    //let fasm = Compiler::new(&ir).compile();
-                    let fasm = "".to_string();
-                    //println!("FASM:\n{fasm}");
-                    write("fasm.asm", &fasm);
-                    match Command::new("fasm")
-                        .arg("./.build/fasm.asm")
-                        .arg("./.build/out")
-                        .output()
-                    {
-                        Ok(out) => {
-                            println!("Linking status: {}", out.status);
-                            let _ = io::stdout().write_all(&out.stdout);
-                            let _ = io::stderr().write_all(&out.stderr);
-                        }
-                        Err(err) => eprintln!("Failed to link executable: {}", err),
-                    }
+                    let c_99 = Transpiler::new(&ast).generate();
+                    // //let ir = IRGen::new(&ast).generate();
+                    // //let fasm = Compiler::new(&ir).compile();
+                    // let fasm = "".to_string();
+                    // //println!("FASM:\n{fasm}");
+                    // write("fasm.asm", &fasm);
+                    // match Command::new("fasm")
+                    //     .arg("./.build/fasm.asm")
+                    //     .arg("./.build/out")
+                    //     .output()
+                    // {
+                    //     Ok(out) => {
+                    //         println!("Linking status: {}", out.status);
+                    //         let _ = io::stdout().write_all(&out.stdout);
+                    //         let _ = io::stderr().write_all(&out.stderr);
+                    //     }
+                    //     Err(err) => eprintln!("Failed to link executable: {}", err),
+                    // }
                 }
                 Err(err) => eprintln!("Failed to analyze: {}", err),
             }
