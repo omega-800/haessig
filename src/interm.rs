@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use crate::parser::{Program};
 
-
 #[allow(dead_code)]
 enum BinOp {
     Add, 
