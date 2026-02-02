@@ -5,16 +5,18 @@
 
 use std::{
     fs::{create_dir, exists, File},
-    io::{self, Write}, process::Command,
+    io::{self, Write},
+    process::Command,
 };
 mod compiler;
+mod interm;
 mod lexer;
 mod parser;
 mod seman;
-mod interm;
+mod trans;
 use seman::SemanticAnalyzer;
 
-use crate::{lexer::Lexer, parser::Parser};
+use crate::{lexer::Lexer, parser::Parser, trans::Transpiler};
 
 fn main() {
     // TODO: remove or implement
@@ -76,23 +78,25 @@ fn write(filename: &str, content: &str) {
 
 fn dothething() {
     let input = "
-dä x isch 5 plus 5 minus 7;
 funktion test het N8 x, N8 y git Wahrheit {
-    tuen schreie mit y;
-    dä y isch 9;
+    tuen schreie mit \"asdf\";
     gib falsch;
+};
+funktion chuchichäschtli git Z8 {
+    dä x isch 5 plus 5 minus 7 als N8;
+    tuen test mit 8, x;
 };
 "
     /*"
-funktion hallo_sege {
-  tuen schreie mit \"Hallo welt\";
-};
-
-funktion chuchichäschtli {
-  dä wert isch \"sowas\";
-  tuen hallo_sege mit wert;
-};
-"*/.to_string();
+    funktion hallo_sege {
+      tuen schreie mit \"Hallo welt\";
+    };
+    funktion chuchichäschtli {
+      dä wert isch \"sowas\";
+      tuen hallo_sege mit wert;
+    };
+    "*/
+    .to_string();
 
     // TODO: ffi && raylib speedrun
 
@@ -116,6 +120,21 @@ funktion chuchichäschtli {
             match SemanticAnalyzer::new(&ast).analyze() {
                 Ok(_) => {
                     let c_99 = Transpiler::new(&ast).generate();
+                    write("c99.c", &c_99);
+                    match Command::new("gcc")
+                        .arg("./.build/c99.c")
+                        .arg("-o")
+                        .arg("./.build/out")
+                        .output()
+                    {
+                        Ok(out) => {
+                            println!("Compilation status: {}", out.status);
+                            let _ = io::stdout().write_all(&out.stdout);
+                            let _ = io::stderr().write_all(&out.stderr);
+                        }
+                        Err(err) => eprintln!("Failed to compile executable: {}", err),
+                    }
+
                     // //let ir = IRGen::new(&ast).generate();
                     // //let fasm = Compiler::new(&ir).compile();
                     // let fasm = "".to_string();
