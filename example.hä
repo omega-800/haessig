@@ -1,0 +1,11 @@
+funktion test het N8 x, N8 y git Wahrheit {
+    tuen schreie mit "Hoi wält!";
+    dä resultat isch x minus y als N8;
+    tuen schreie mit resultat;
+    gib falsch;
+};
+funktion chuchichäschtli git Z8 {
+    dä x isch 10 mal 7 als N8;
+    tuen test mit x, 1;
+    gib 0;
+};

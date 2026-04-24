@@ -4,7 +4,8 @@
 #![deny(unused_must_use)]
 
 use std::{
-    fs::{create_dir, exists, File},
+    env,
+    fs::{self, create_dir, exists, File},
     io::{self, Write},
     process::Command,
 };
@@ -19,6 +20,18 @@ use seman::SemanticAnalyzer;
 use crate::{lexer::Lexer, parser::Parser, trans::Transpiler};
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    if let Some(filepath) = env::args().nth(1) {
+        if let Ok(contents) = fs::read_to_string(&filepath) {
+            dothething(&contents);
+        } else {
+            eprintln!("Failed to read file `{}'", &filepath);
+        }
+    } else {
+        println!("Usage: {} <input-file.hä>", &args[0]);
+    }
+
     // TODO: remove or implement
     /*
     let matches =
@@ -57,7 +70,6 @@ fn main() {
         }
     }
     */
-    dothething();
 }
 
 fn write(filename: &str, content: &str) {
@@ -76,28 +88,7 @@ fn write(filename: &str, content: &str) {
     }
 }
 
-fn dothething() {
-    let input = "
-funktion test het N8 x, N8 y git Wahrheit {
-    tuen schreie mit \"asdf\";
-    gib falsch;
-};
-funktion chuchichäschtli git Z8 {
-    dä x isch 5 plus 5 minus 7 als N8;
-    tuen test mit 8, x;
-};
-"
-    /*"
-    funktion hallo_sege {
-      tuen schreie mit \"Hallo welt\";
-    };
-    funktion chuchichäschtli {
-      dä wert isch \"sowas\";
-      tuen hallo_sege mit wert;
-    };
-    "*/
-    .to_string();
-
+fn dothething(input: &str) {
     // TODO: ffi && raylib speedrun
 
     if !exists("./.build").unwrap_or(false) {
@@ -106,8 +97,8 @@ funktion chuchichäschtli git Z8 {
         }
     }
     //println!("INPUT:\n{input}");
-    write("input.hä", &input);
-    let toks = Lexer::new(&input).lex();
+    write("input.hä", input);
+    let toks = Lexer::new(input).lex();
     write("tokens.txt", &format!("{:#?}", toks));
     //println!("TOKS:\n{}", toks);
     //FIXME: lifetime of the ast shouldn't be tied to the lifetime of the parser

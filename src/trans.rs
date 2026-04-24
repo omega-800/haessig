@@ -131,17 +131,37 @@ impl<'a> Transpileable<'a> for VarAss<'a> {
 
 impl<'a> Transpileable<'a> for Call<'a> {
     fn transpile(&'a self) -> String {
-        let id = match self.id {
-            "schreie" => "printf",
-            i => i,
-        };
-        let args = self
-            .args
-            .iter()
-            .map(|a| a.transpile())
-            .collect::<Vec<String>>()
-            .join(", ");
-        format!("{id}({args})")
+        if self.id == "schreie" {
+            let (templs, args) = self
+                .args
+                .iter()
+                .map(|a| {
+                    (
+                        (match a {
+                            Expr::StEx(_) => "%s",
+                            Expr::Prim(prim) => match prim {
+                                // FIXME: needs proper impl
+                                Prim::Bool(_) | Prim::R8(_) | Prim::Id(_) => "%i",
+                                Prim::Str(_) => "%s",
+                            },
+                            Expr::Bin(_) => "%i",
+                        })
+                        .to_string(),
+                        a.transpile(),
+                    )
+                })
+                .reduce(|(ta, aa), (t, a)| (ta + " " + &t, aa + ", " + &a))
+                .unwrap_or(("%s".to_string(), "\" \"".to_string()));
+            format!("printf(\"{}\\n\", {})", templs, args)
+        } else {
+            let args = self
+                .args
+                .iter()
+                .map(|a| a.transpile())
+                .collect::<Vec<String>>()
+                .join(", ");
+            format!("{}({})", self.id, args)
+        }
     }
 }
 

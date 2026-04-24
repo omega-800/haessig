@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
 
 use crate::parser::{
-    Bin, BinOperator, Block, Call, Expr, FunAss, Prim, PrimType, Program, StEx, Stmt, VarAss,
+    Bin, Block, Call, Expr, FunAss, Prim, PrimType, Program, StEx, Stmt, VarAss,
 };
 
 // TODO: check
@@ -52,7 +52,7 @@ impl<'a> Display for SemAnError<'a> {
                     id, fun
                 ),
                 SemAnError::ArgNotDefined(id, fun) =>
-                    format!("Argument `{}` for function `{}` not defined", id, fun),
+                    format!("Argument `{}` for function `{}` not defined", fun, id),
             }
         )
     }
@@ -190,9 +190,17 @@ impl<'a> Analyzable<'a> for VarAss<'a> {
         //self.value.analyze(ctx)?;
         //FIXME: this is wrong. why do i not add these symbols to the scope
         match &self.value {
-            Expr::StEx(st_ex) => st_ex.analyze(ctx)?,
+            Expr::StEx(st_ex) => {
+                // TODO: 
+                ctx.add_symbol(self.id, None);
+                st_ex.analyze(ctx)?
+            },
             Expr::Prim(prim) => ctx.add_prim(prim, self.id)?,
-            Expr::Bin(bin) => bin.analyze(ctx)?,
+            Expr::Bin(bin) => {
+                // TODO: 
+                ctx.add_symbol(self.id, None);
+                bin.analyze(ctx)?
+            },
         }
         Ok(())
     }
